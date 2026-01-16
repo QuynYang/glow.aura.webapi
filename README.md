@@ -449,9 +449,5 @@ Content-Type: application/json
 - **MSSV**: 22DH114506
 - **Môn học**: Mẫu Thiết Kế Phần Mềm
 
----
 
-## 📄 License
-
-Dự án này được phát hành dưới giấy phép [MIT License](LICENSE).
 
