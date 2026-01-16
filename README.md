@@ -445,9 +445,8 @@ Content-Type: application/json
 
 ## 👨‍💻 Tác giả
 
-- **Họ tên**: [Tên của bạn]
-- **MSSV**: [Mã số sinh viên]
-- **Lớp**: [Tên lớp]
+- **Họ tên**: Vũ Ngọc Quỳnh Giang
+- **MSSV**: 22DH114506
 - **Môn học**: Mẫu Thiết Kế Phần Mềm
 
 ---
