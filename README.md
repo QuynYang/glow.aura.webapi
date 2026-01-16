@@ -372,8 +372,8 @@ public class PaymentFactory
 ### Bước 1: Clone repository
 
 ```bash
-git clone https://github.com/<your-username>/CosmeticStore.git
-cd CosmeticStore
+git clone https://github.com/QuynYang/glow.aura.webapi.git
+cd glow.aura.webapi
 ```
 
 ### Bước 2: Cấu hình Database
