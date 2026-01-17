@@ -521,8 +521,8 @@ builder.Services.AddScoped<IProductRepository, ProductRepository>();
 ### Bước 1: Clone repository
 
 ```bash
-git clone https://github.com/<your-username>/CosmeticStore.git
-cd CosmeticStore
+git clone https://github.com/QuynYang/glow.aura.webapi.git
+cd glow.aura.webapi
 ```
 
 ### Bước 2: Cấu hình Database
@@ -662,5 +662,8 @@ Content-Type: application/json
 - **MSSV**: 22DH114506
 - **Môn học**: Mẫu Thiết Kế Phần Mềm
 
----
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 351de3778a4d53146505428c0ac70bc38e944e43
