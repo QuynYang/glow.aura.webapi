@@ -3,36 +3,35 @@ using CosmeticStore.Core.Interfaces;
 namespace CosmeticStore.Infrastructure.Services;
 
 /// <summary>
-/// Dịch vụ thanh toán qua ví Momo
+/// Dịch vụ thanh toán qua VNPay
 /// Implement IPaymentService interface (Abstraction)
 /// 
 /// FACTORY PATTERN:
 /// - Được tạo bởi PaymentFactory
-/// - Xử lý thanh toán qua ví Momo
+/// - Xử lý thanh toán qua cổng VNPay
 /// </summary>
-public class MomoPaymentService : IPaymentService
+public class VnPayPaymentService : IPaymentService
 {
-    public string PaymentMethod => "MOMO";
+    public string PaymentMethod => "VNPAY";
 
     /// <summary>
-    /// Xử lý thanh toán qua Momo
-    /// (Đây là code mẫu - thực tế cần tích hợp API Momo)
+    /// Xử lý thanh toán qua VNPay
+    /// (Đây là code mẫu - thực tế cần tích hợp API VNPay)
     /// </summary>
     public async Task<PaymentResult> ProcessPaymentAsync(decimal amount, string orderId, string? description = null)
     {
-        // TODO: Tích hợp API Momo thực tế
-        // 1. Tạo request đến Momo API
-        // 2. Nhận URL redirect để khách thanh toán
-        // 3. Xử lý callback từ Momo
-        
         await Task.Delay(100); // Giả lập gọi API
 
-        var transactionId = $"MOMO-{orderId}-{DateTime.UtcNow:yyyyMMddHHmmss}";
+        var transactionId = $"VNPAY-{orderId}-{DateTime.UtcNow:yyyyMMddHHmmss}";
         
+        // TODO: Tích hợp VNPay API thực tế
+        // 1. Tạo request với chữ ký số
+        // 2. Redirect đến VNPay
+        // 3. Xử lý callback IPN
+
         return PaymentResult.Success(
             transactionId: transactionId,
-            paymentUrl: $"https://momo.vn/payment?orderId={orderId}&amount={amount}",
-            qrCode: $"00020101021238570010A000000727012600069704220108{transactionId}"
+            paymentUrl: $"https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_TxnRef={orderId}&vnp_Amount={amount * 100}"
         );
     }
 
@@ -41,27 +40,26 @@ public class MomoPaymentService : IPaymentService
     /// </summary>
     public async Task<PaymentResult> CheckTransactionStatusAsync(string transactionId)
     {
-        await Task.Delay(50); // Giả lập gọi API
+        await Task.Delay(50);
         
-        // TODO: Gọi Momo API để kiểm tra trạng thái
         return new PaymentResult
         {
             IsSuccess = true,
             TransactionId = transactionId,
-            Message = "Giao dịch thành công"
+            Message = "Giao dịch VNPay thành công"
         };
     }
 
     /// <summary>
-    /// Hoàn tiền
+    /// Hoàn tiền qua VNPay
     /// </summary>
     public async Task<PaymentResult> RefundAsync(string transactionId, decimal amount, string? reason = null)
     {
-        await Task.Delay(100); // Giả lập gọi API
+        await Task.Delay(100);
         
-        // TODO: Gọi Momo API để hoàn tiền
         return PaymentResult.Success(
             transactionId: $"REFUND-{transactionId}"
         );
     }
 }
+

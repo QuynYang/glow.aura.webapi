@@ -80,30 +80,69 @@ Dự án được tổ chức theo mô hình **Clean Architecture** (Kiến trú
  ┣ 📂 CosmeticStore.Core/             # Tầng Core (Domain Layer)
  ┃ ┣ 📂 Entities/
  ┃ ┃ ┣ 📄 BaseEntity.cs               # Class cha - Inheritance
- ┃ ┃ ┗ 📄 Product.cs                  # Entity sản phẩm - Encapsulation
+ ┃ ┃ ┣ 📄 Product.cs                  # Entity sản phẩm - Encapsulation
+ ┃ ┃ ┣ 📄 User.cs                     # Entity người dùng - VIP & SkinType
+ ┃ ┃ ┣ 📄 Order.cs                    # Entity đơn hàng - Aggregate Root
+ ┃ ┃ ┗ 📄 OrderItem.cs                # Entity chi tiết đơn hàng
  ┃ ┣ 📂 Enums/
- ┃ ┃ ┗ 📄 SkinType.cs                 # Enum loại da (Oily, Dry, Sensitive...)
+ ┃ ┃ ┣ 📄 SkinType.cs                 # Enum loại da (Oily, Dry, Sensitive...)
+ ┃ ┃ ┣ 📄 VipLevel.cs                 # Enum cấp VIP (Bronze, Silver, Gold, Platinum)
+ ┃ ┃ ┣ 📄 OrderStatus.cs              # Enum trạng thái đơn hàng
+ ┃ ┃ ┗ 📄 PaymentMethod.cs            # Enum phương thức thanh toán
+ ┃ ┣ 📂 Commands/                     # Command Pattern
+ ┃ ┃ ┣ 📄 ICommand.cs                 # Interface & Base class Command
+ ┃ ┃ ┣ 📄 ICommandHandler.cs          # Interface Handler & Result
+ ┃ ┃ ┗ 📂 Orders/                     # Order-related Commands
+ ┃ ┃   ┣ 📄 CreateOrderCommand.cs     # Tạo đơn hàng
+ ┃ ┃   ┣ 📄 CancelOrderCommand.cs     # Hủy đơn hàng
+ ┃ ┃   ┣ 📄 ConfirmOrderCommand.cs    # Xác nhận đơn hàng
+ ┃ ┃   ┗ 📄 PayOrderCommand.cs        # Thanh toán
  ┃ ┣ 📂 Interfaces/
  ┃ ┃ ┣ 📄 IGenericRepository.cs       # Interface CRUD cơ bản
  ┃ ┃ ┣ 📄 IProductRepository.cs       # Interface đặc thù cho Product
+ ┃ ┃ ┣ 📄 IOrderRepository.cs         # Interface đặc thù cho Order
  ┃ ┃ ┣ 📄 IPricingStrategy.cs         # Interface Strategy Pattern
- ┃ ┃ ┗ 📄 IPaymentService.cs          # Interface Payment Services
+ ┃ ┃ ┣ 📄 IPriceDecorator.cs          # Abstract class Decorator Pattern
+ ┃ ┃ ┣ 📄 IPricingService.cs          # Interface Pricing Orchestrator
+ ┃ ┃ ┣ 📄 IPaymentService.cs          # Interface Payment Services
+ ┃ ┃ ┗ 📄 IAppLogger.cs               # Interface Logger (Singleton)
  ┃ ┗ 📄 CosmeticStore.Core.csproj
  ┃
  ┣ 📂 CosmeticStore.Infrastructure/   # Tầng Infrastructure
  ┃ ┣ 📂 DbContext/
- ┃ ┃ ┗ 📄 StoreDbContext.cs           # EF Core DbContext
+ ┃ ┃ ┗ 📄 StoreDbContext.cs           # EF Core DbContext (Products, Users, Orders)
  ┃ ┣ 📂 Repositories/
  ┃ ┃ ┣ 📄 GenericRepository.cs        # Generic Repository - CRUD cơ bản
- ┃ ┃ ┗ 📄 ProductRepository.cs        # Product Repository - Query đặc thù
- ┃ ┣ 📂 Strategies/
- ┃ ┃ ┣ 📄 VipPricingStrategy.cs       # Chiến lược giá VIP
- ┃ ┃ ┣ 📄 StandardPricingStrategy.cs  # Chiến lược giá thường
- ┃ ┃ ┗ 📄 SalePricingStrategy.cs      # Chiến lược khuyến mãi
+ ┃ ┃ ┣ 📄 ProductRepository.cs        # Product Repository - Query đặc thù
+ ┃ ┃ ┗ 📄 OrderRepository.cs          # Order Repository - Query đặc thù
+ ┃ ┣ 📂 Strategies/                   # Strategy Pattern implementations
+ ┃ ┃ ┣ 📄 StandardPricingStrategy.cs  # Giá thường (0%)
+ ┃ ┃ ┣ 📄 VipPricingStrategy.cs       # Giá VIP (5%-20%)
+ ┃ ┃ ┣ 📄 SkinTypePricingStrategy.cs  # Giá theo loại da (5%)
+ ┃ ┃ ┗ 📄 SalePricingStrategy.cs      # Giá khuyến mãi
+ ┃ ┣ 📂 Decorators/                   # Decorator Pattern implementations
+ ┃ ┃ ┣ 📄 ExpiryDiscountDecorator.cs  # Giảm giá cận hạn (15%-40%)
+ ┃ ┃ ┣ 📄 FlashSaleDecorator.cs       # Giảm giá Flash Sale
+ ┃ ┃ ┗ 📄 CouponDecorator.cs          # Giảm giá mã coupon
+ ┃ ┣ 📂 Handlers/                     # Command Handlers (Single Responsibility)
+ ┃ ┃ ┣ 📄 CreateOrderCommandHandler.cs  # Tạo đơn hàng
+ ┃ ┃ ┣ 📄 CancelOrderCommandHandler.cs  # Hủy đơn hàng
+ ┃ ┃ ┣ 📄 ConfirmOrderCommandHandler.cs # Xác nhận đơn hàng
+ ┃ ┃ ┗ 📄 PayOrderCommandHandler.cs     # Thanh toán (dùng Factory)
+ ┃ ┣ 📂 Gateways/                     # Factory Pattern - Payment Gateways
+ ┃ ┃ ┣ 📄 PaymentGatewayFactory.cs    # Factory tạo Gateway từ string
+ ┃ ┃ ┣ 📄 MomoGateway.cs              # Cổng Momo (QR, DeepLink)
+ ┃ ┃ ┣ 📄 ZaloPayGateway.cs           # Cổng ZaloPay
+ ┃ ┃ ┣ 📄 VNPayGateway.cs             # Cổng VNPay
+ ┃ ┃ ┗ 📄 CODGateway.cs               # Thanh toán khi nhận hàng
  ┃ ┣ 📂 Services/
- ┃ ┃ ┣ 📄 PaymentFactory.cs           # Factory tạo Payment Service
+ ┃ ┃ ┣ 📄 PricingService.cs           # Orchestrator Strategy + Decorator
+ ┃ ┃ ┣ 📄 AppLogger.cs                # Logger (Singleton qua DI)
+ ┃ ┃ ┣ 📄 PaymentFactory.cs           # Factory tạo Payment Service (Legacy)
  ┃ ┃ ┣ 📄 MomoPaymentService.cs       # Thanh toán Momo
- ┃ ┃ ┗ 📄 CodPaymentService.cs        # Thanh toán COD
+ ┃ ┃ ┣ 📄 CodPaymentService.cs        # Thanh toán COD
+ ┃ ┃ ┣ 📄 VnPayPaymentService.cs      # Thanh toán VNPay
+ ┃ ┃ ┗ 📄 ZaloPayPaymentService.cs    # Thanh toán ZaloPay
  ┃ ┗ 📄 CosmeticStore.Infrastructure.csproj
  ┃
  ┣ 📄 CosmeticStore.sln               # Solution file
@@ -460,15 +499,290 @@ builder.Services.AddScoped<IProductRepository, ProductRepository>();
 
 ---
 
+### ✅ Giai đoạn 2: Tính giá & Khuyến mãi (Strategy + Decorator Pattern)
+
+> **Mục tiêu**: Hoàn thành chức năng Tính giá, Khuyến mãi, Quản lý hạn sử dụng
+
+#### Bước 2.1: Strategy Pattern - Chiến lược giá gốc ✅
+
+| File | Mô tả | OOP |
+|------|-------|-----|
+| `VipLevel.cs` | Enum cấp độ VIP (None, Bronze, Silver, Gold, Platinum) | - |
+| `User.cs` | Entity người dùng với VipLevel, SkinType | **Encapsulation** |
+| `IPricingStrategy.cs` | Interface với `CalculatePrice(Product, User)` | **Abstraction** |
+| `StandardPricingStrategy.cs` | Giữ nguyên giá gốc | **Polymorphism** |
+| `VipPricingStrategy.cs` | Giảm theo VipLevel (5%-20%) | **Polymorphism** |
+| `SkinTypePricingStrategy.cs` | Giảm 5% khi loại da phù hợp | **Polymorphism** |
+
+**Bảng giảm giá VIP:**
+
+| VipLevel | Chi tiêu tích lũy | Giảm giá |
+|----------|-------------------|----------|
+| None | < 1,000,000 VND | 0% |
+| Bronze | ≥ 1,000,000 VND | 5% |
+| Silver | ≥ 5,000,000 VND | 10% |
+| Gold | ≥ 10,000,000 VND | 15% |
+| Platinum | ≥ 20,000,000 VND | 20% |
+
+#### Bước 2.2: Decorator Pattern - Cộng dồn khuyến mãi ✅
+
+| File | Mô tả | Giảm giá |
+|------|-------|----------|
+| `PriceDecorator.cs` | Abstract class chứa IPricingStrategy bên trong | **Decorator Base** |
+| `ExpiryDiscountDecorator.cs` | Giảm giá sản phẩm cận hạn | ≤7d: 40%, ≤14d: 25%, ≤30d: 15% |
+| `FlashSaleDecorator.cs` | Giảm giá Flash Sale | Theo Product.FlashSaleDiscount |
+| `CouponDecorator.cs` | Giảm giá theo mã | % hoặc số tiền cố định |
+
+**Ví dụ cộng dồn giảm giá:**
+
+```
+Giá gốc: 100,000 VND
+├── VipPricingStrategy (Gold -15%): 85,000 VND
+├── ExpiryDiscountDecorator (≤14d -25%): 63,750 VND
+├── FlashSaleDecorator (-20%): 51,000 VND
+└── CouponDecorator (-10%): 45,900 VND
+
+→ Giá cuối: 45,900 VND (Giảm 54.1%)
+```
+
+#### Bước 2.3: Pricing Service - Orchestrator ✅
+
+| File | Mô tả |
+|------|-------|
+| `IPricingService.cs` | Interface với `CalculateFinalPrice()`, `BuildPricingChain()` |
+| `PricingService.cs` | Tự động chọn Strategy và wrap Decorator phù hợp |
+
+**Luồng xử lý của PricingService:**
+
+```csharp
+// Input: Product + User + CouponCode
+var result = pricingService.CalculateFinalPrice(product, user, "SALE20");
+
+// Output: PricingResult
+// - OriginalPrice: 100,000
+// - FinalPrice: 45,900
+// - TotalDiscountPercent: 54.1%
+// - AppliedDiscounts: [VIP, Expiry, FlashSale, Coupon]
+// - Warnings: ["Sản phẩm sắp hết hạn trong 10 ngày"]
+```
+
+---
+
+### ✅ Giai đoạn 3: Xử lý Đơn hàng (Command Pattern)
+
+> **Mục tiêu**: Hoàn thành chức năng Đặt hàng, Thanh toán
+
+#### Bước 3.1: Tách biệt Request và Handler ✅
+
+| File | Mô tả | Chức năng |
+|------|-------|-----------|
+| `OrderStatus.cs` | Enum trạng thái đơn hàng | Pending → Confirmed → Paid → Shipping → Completed |
+| `PaymentMethod.cs` | Enum phương thức thanh toán | COD, Momo, VNPay, ZaloPay |
+| `Order.cs` | Entity đơn hàng - Aggregate Root | **Encapsulation**: Logic nghiệp vụ trong class |
+| `OrderItem.cs` | Entity chi tiết đơn hàng | Snapshot giá, số lượng |
+
+**Command Pattern - Các Command đã tạo:**
+
+| Command | Input | Output | Mô tả |
+|---------|-------|--------|-------|
+| `CreateOrderCommand` | UserId, Items, Address, PaymentMethod | OrderId, OrderNumber | Tạo đơn hàng mới |
+| `CancelOrderCommand` | OrderId, Reason | RefundAmount | Hủy đơn hàng |
+| `ConfirmOrderCommand` | OrderId, ShippingFee | TotalAmount | Xác nhận đơn hàng |
+| `PayOrderCommand` | OrderId, PaymentMethod | TransactionId, PaymentUrl | Thanh toán |
+
+**Cấu trúc Command Pattern:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         ICommand<T>                             │
+│                    (Interface chung)                            │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │ Implement
+           ┌───────────────┼───────────────┬───────────────────────┐
+           ▼               ▼               ▼                       ▼
+┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+│ CreateOrder      │ │   CancelOrder    │ │  ConfirmOrder    │ │    PayOrder      │
+│   Command        │ │   Command        │ │    Command       │ │    Command       │
+├──────────────────┤ ├──────────────────┤ ├──────────────────┤ ├──────────────────┤
+│ - UserId         │ │ - OrderId        │ │ - OrderId        │ │ - OrderId        │
+│ - Items[]       │ │ - Reason         │ │ - ShippingFee    │ │ - PaymentMethod  │
+│ - Address        │ │ - CancelledBy    │ │ - AdminNotes     │ │ - ReturnUrl      │
+│ - PaymentMethod  │ └──────────────────┘ └──────────────────┘ └──────────────────┘
+└──────────────────┘
+
+                    ┌─────────────────────────────────────────┐
+                    │      ICommandHandler<TCommand, TResult> │
+                    │              (Xử lý logic)              │
+                    └─────────────────────────────────────────┘
+```
+
+**Ví dụ sử dụng Command:**
+
+```csharp
+// Tạo Command với dữ liệu
+var command = new CreateOrderCommand(
+    userId: 1,
+    items: new[] { new OrderItemInput { ProductId = 5, Quantity = 2 } },
+    shippingAddress: "123 Nguyễn Văn A, Q.1, TP.HCM",
+    shippingPhone: "0901234567",
+    receiverName: "Nguyễn Văn A",
+    paymentMethod: PaymentMethod.Momo,
+    couponCode: "SALE20"
+);
+
+// Gửi đến Handler xử lý
+var result = await _handler.HandleAsync(command);
+
+// Kết quả
+if (result.IsSuccess)
+{
+    Console.WriteLine($"Đơn hàng {result.Data.OrderNumber} đã tạo thành công!");
+    Console.WriteLine($"Tổng tiền: {result.Data.TotalAmount:N0} VND");
+}
+```
+
+---
+
+#### Bước 3.2: Command Handlers (Single Responsibility) ✅
+
+| Handler | Input Command | Workflow | Output |
+|---------|---------------|----------|--------|
+| `CreateOrderCommandHandler` | `CreateOrderCommand` | Validate User → Validate Stock → Tính giá (PricingService) → Trừ kho → Lưu DB → Log | `CreateOrderResult` |
+| `CancelOrderCommandHandler` | `CancelOrderCommand` | Validate Order → Check status → Hoàn kho → Update status → Log | `CancelOrderResult` |
+| `ConfirmOrderCommandHandler` | `ConfirmOrderCommand` | Validate Order → Set shipping → Confirm → Log | `ConfirmOrderResult` |
+| `PayOrderCommandHandler` | `PayOrderCommand` | Validate → Factory tạo Payment Service → Process → Update → Log | `PayOrderResult` |
+
+**Single Responsibility Principle:**
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                   CreateOrderCommandHandler                         │
+│                 (Chỉ làm 1 việc: Tạo đơn hàng)                      │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  1. Validate User         → IGenericRepository<User>                │
+│  2. Validate Products     → IProductRepository                      │
+│  3. Tính giá             → IPricingService (Strategy + Decorator)  │
+│  4. Trừ tồn kho          → Product.UpdateStock() (Encapsulation)   │
+│  5. Tạo Order            → Order Entity (Domain Logic)              │
+│  6. Lưu Database         → IOrderRepository                         │
+│  7. Ghi Log              → IAppLogger (Singleton)                   │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Kết hợp các Pattern:**
+
+```csharp
+// Handler tạo đơn hàng - Kết hợp tất cả Pattern
+public class CreateOrderCommandHandler
+{
+    // Repository Pattern
+    private readonly IProductRepository _productRepository;
+    private readonly IOrderRepository _orderRepository;
+    
+    // Strategy + Decorator Pattern (Phase 2)
+    private readonly IPricingService _pricingService;
+    
+    // Singleton Pattern
+    private readonly IAppLogger _logger;
+    
+    public async Task<CommandResult<CreateOrderResult>> HandleAsync(CreateOrderCommand command)
+    {
+        // Tính giá (Strategy + Decorator)
+        var pricingResult = _pricingService.CalculateFinalPrice(product, user, couponCode);
+        
+        // Encapsulation - Trừ kho qua method trong Entity
+        product.UpdateStock(-quantity);
+        
+        // Domain Logic trong Entity
+        var order = new Order(userId, address, phone, name, paymentMethod);
+        order.AddItem(orderItem);
+        
+        // Ghi Log (Singleton)
+        _logger.LogOrderActivity(order.Id, "CREATE", details);
+        
+        return CommandResult<CreateOrderResult>.Success(result);
+    }
+}
+```
+
+---
+
+#### Bước 3.3: Thanh toán đa kênh (Factory Pattern) ✅
+
+| File | Mô tả | Gateway |
+|------|-------|---------|
+| `IPaymentGateway.cs` | Interface cổng thanh toán | Base Interface |
+| `MomoGateway.cs` | Cổng Momo | QR, Deep Link |
+| `ZaloPayGateway.cs` | Cổng ZaloPay | QR, Deep Link |
+| `VNPayGateway.cs` | Cổng VNPay | Redirect URL |
+| `CODGateway.cs` | Thanh toán khi nhận hàng | Không online |
+| `PaymentGatewayFactory.cs` | Factory tạo Gateway | Factory Pattern |
+
+**Factory Pattern - Workflow:**
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        PaymentGatewayFactory                            │
+│                     (Tạo đúng Gateway từ string)                        │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  CreateGateway("MOMO")     ────────────► new MomoGateway()              │
+│  CreateGateway("ZALOPAY")  ────────────► new ZaloPayGateway()           │
+│  CreateGateway("VNPAY")    ────────────► new VNPayGateway()             │
+│  CreateGateway("COD")      ────────────► new CODGateway()               │
+│                                                                         │
+│  Tất cả đều trả về IPaymentGateway (Polymorphism)                       │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**Ví dụ sử dụng:**
+
+```csharp
+// Controller hoặc Handler
+var factory = new PaymentGatewayFactory();
+
+// Tạo gateway từ string (từ request của user)
+IPaymentGateway gateway = factory.CreateGateway("MOMO");
+
+// Gọi ProcessPaymentAsync - Polymorphism
+// Client không biết đây là MomoGateway
+var result = await gateway.ProcessPaymentAsync(new PaymentRequest
+{
+    OrderId = "123",
+    OrderNumber = "ORD20260117001",
+    Amount = 500000,
+    Description = "Thanh toán đơn hàng mỹ phẩm",
+    ReturnUrl = "https://mysite.com/payment/callback"
+});
+
+// Xử lý kết quả
+if (result.IsSuccess)
+{
+    // Redirect đến cổng thanh toán
+    return Redirect(result.PaymentUrl);
+}
+```
+
+**Các cổng thanh toán được hỗ trợ:**
+
+| Gateway | Mã | Online | QR Code | Deep Link |
+|---------|-----|--------|---------|-----------|
+| Momo | `MOMO` | ✅ | ✅ | ✅ |
+| ZaloPay | `ZALOPAY` | ✅ | ✅ | ✅ |
+| VNPay | `VNPAY` | ✅ | ❌ | ❌ |
+| COD | `COD` | ❌ | ❌ | ❌ |
+
+---
+
 ### ⏳ Giai đoạn tiếp theo (Đang phát triển)
 
 | Giai đoạn | Mô tả | Pattern |
 |-----------|-------|---------|
-| **Giai đoạn 2** | Giỏ hàng & Tính giá | Strategy + Decorator |
-| **Giai đoạn 3** | Đặt hàng | Command Pattern |
-| **Giai đoạn 4** | Thanh toán | Factory Pattern |
-| **Giai đoạn 5** | Thông báo | Observer Pattern |
-| **Giai đoạn 6** | Ghi log | Singleton Pattern |
+| **Giai đoạn 4** | Thông báo | Observer Pattern |
+| **Giai đoạn 5** | Ghi log nâng cao | Singleton Pattern |
 
 ---
 
@@ -480,11 +794,28 @@ builder.Services.AddScoped<IProductRepository, ProductRepository>();
 |------|-------|-------------|
 | `Entities/BaseEntity.cs` | Class cha chứa Id, CreatedAt, IsDeleted | **Kế thừa** |
 | `Entities/Product.cs` | Entity với logic UpdateStock, ActivateFlashSale | **Đóng gói** |
+| `Entities/User.cs` | Entity người dùng với VipLevel, SkinType | **Đóng gói** |
+| `Entities/Order.cs` | Entity đơn hàng - Aggregate Root | **Đóng gói + Command** |
+| `Entities/OrderItem.cs` | Entity chi tiết đơn hàng | **Đóng gói** |
 | `Enums/SkinType.cs` | Enum loại da (Oily, Dry, Sensitive, Normal, Combination) | - |
+| `Enums/VipLevel.cs` | Enum cấp VIP (None, Bronze, Silver, Gold, Platinum) | - |
+| `Enums/OrderStatus.cs` | Enum trạng thái đơn hàng (Pending → Completed) | - |
+| `Enums/PaymentMethod.cs` | Enum phương thức thanh toán (COD, Momo, VNPay...) | - |
+| `Commands/ICommand.cs` | Interface và Base class cho Command | **Command** |
+| `Commands/ICommandHandler.cs` | Interface Handler và CommandResult | **Command** |
+| `Commands/Orders/CreateOrderCommand.cs` | Command tạo đơn hàng | **Command** |
+| `Commands/Orders/CancelOrderCommand.cs` | Command hủy đơn hàng | **Command** |
+| `Commands/Orders/ConfirmOrderCommand.cs` | Command xác nhận đơn hàng | **Command** |
+| `Commands/Orders/PayOrderCommand.cs` | Command thanh toán | **Command** |
 | `Interfaces/IGenericRepository.cs` | Interface CRUD cơ bản | **Trừu tượng** |
 | `Interfaces/IProductRepository.cs` | Interface đặc thù cho Product | **Kế thừa** |
-| `Interfaces/IPricingStrategy.cs` | Interface Strategy Pattern | **Đa hình** |
+| `Interfaces/IOrderRepository.cs` | Interface đặc thù cho Order | **Kế thừa** |
+| `Interfaces/IPricingStrategy.cs` | Interface Strategy Pattern với Product, User | **Đa hình** |
+| `Interfaces/IPriceDecorator.cs` | Abstract class cho Decorator Pattern | **Decorator** |
+| `Interfaces/IPricingService.cs` | Interface Pricing Orchestrator | **Trừu tượng** |
 | `Interfaces/IPaymentService.cs` | Interface Payment Services | **Trừu tượng** |
+| `Interfaces/IPaymentGateway.cs` | Interface cổng thanh toán | **Factory** |
+| `Interfaces/IAppLogger.cs` | Interface Logger (Singleton) | **Singleton** |
 
 ### 📂 CosmeticStore.Infrastructure (Tầng Hạ tầng)
 
@@ -493,12 +824,30 @@ builder.Services.AddScoped<IProductRepository, ProductRepository>();
 | `DbContext/StoreDbContext.cs` | EF Core DbContext với Query Filter | - |
 | `Repositories/GenericRepository.cs` | Implement IGenericRepository | **Repository** |
 | `Repositories/ProductRepository.cs` | Implement IProductRepository | **Repository + Kế thừa** |
-| `Strategies/StandardPricingStrategy.cs` | Chiến lược giá thường | **Strategy** |
-| `Strategies/VipPricingStrategy.cs` | Chiến lược giá VIP (giảm 10%) | **Strategy** |
+| `Repositories/OrderRepository.cs` | Implement IOrderRepository | **Repository + Kế thừa** |
+| `Strategies/StandardPricingStrategy.cs` | Chiến lược giá thường (0%) | **Strategy** |
+| `Strategies/VipPricingStrategy.cs` | Chiến lược VIP (5%-20%) | **Strategy** |
+| `Strategies/SkinTypePricingStrategy.cs` | Chiến lược loại da (5%) | **Strategy** |
 | `Strategies/SalePricingStrategy.cs` | Chiến lược khuyến mãi | **Strategy** |
+| `Decorators/ExpiryDiscountDecorator.cs` | Giảm giá cận hạn (15%-40%) | **Decorator** |
+| `Decorators/FlashSaleDecorator.cs` | Giảm giá Flash Sale | **Decorator** |
+| `Decorators/CouponDecorator.cs` | Giảm giá mã coupon | **Decorator** |
+| `Handlers/CreateOrderCommandHandler.cs` | Handler tạo đơn hàng | **Command + SRP** |
+| `Handlers/CancelOrderCommandHandler.cs` | Handler hủy đơn hàng | **Command + SRP** |
+| `Handlers/ConfirmOrderCommandHandler.cs` | Handler xác nhận đơn hàng | **Command + SRP** |
+| `Handlers/PayOrderCommandHandler.cs` | Handler thanh toán | **Command + Factory** |
+| `Services/PricingService.cs` | Orchestrator Strategy + Decorator | **Service** |
+| `Services/AppLogger.cs` | Logger (Singleton qua DI) | **Singleton** |
 | `Services/PaymentFactory.cs` | Factory tạo Payment Service | **Factory** |
 | `Services/MomoPaymentService.cs` | Xử lý thanh toán Momo | **Đa hình** |
 | `Services/CodPaymentService.cs` | Xử lý thanh toán COD | **Đa hình** |
+| `Services/VnPayPaymentService.cs` | Xử lý thanh toán VNPay | **Đa hình** |
+| `Services/ZaloPayPaymentService.cs` | Xử lý thanh toán ZaloPay | **Đa hình** |
+| `Gateways/PaymentGatewayFactory.cs` | Factory tạo Payment Gateway | **Factory** |
+| `Gateways/MomoGateway.cs` | Cổng thanh toán Momo (QR, DeepLink) | **Factory** |
+| `Gateways/ZaloPayGateway.cs` | Cổng thanh toán ZaloPay | **Factory** |
+| `Gateways/VNPayGateway.cs` | Cổng thanh toán VNPay | **Factory** |
+| `Gateways/CODGateway.cs` | Thanh toán khi nhận hàng | **Factory** |
 
 ### 📂 CosmeticStore.API (Tầng Presentation)
 

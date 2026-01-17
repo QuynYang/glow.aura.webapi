@@ -28,9 +28,9 @@ public class PaymentFactory
         {
             "MOMO" => new MomoPaymentService(),
             "COD" => new CodPaymentService(),
-            // Dễ dàng thêm phương thức mới:
-            // "VNPAY" => new VnPayPaymentService(),
-            // "ZALOPAY" => new ZaloPayPaymentService(),
+            "VNPAY" => new VnPayPaymentService(),
+            "ZALOPAY" => new ZaloPayPaymentService(),
+            "BANK" => new VnPayPaymentService(), // Bank transfer qua VNPay
             _ => throw new ArgumentException($"Phương thức thanh toán '{paymentMethod}' không được hỗ trợ")
         };
     }
@@ -40,8 +40,28 @@ public class PaymentFactory
     /// </summary>
     public IEnumerable<string> GetSupportedMethods()
     {
-        return new[] { "MOMO", "COD" };
+        return new[] { "COD", "MOMO", "VNPAY", "ZALOPAY", "BANK" };
+    }
+
+    /// <summary>
+    /// Lấy thông tin phương thức thanh toán
+    /// </summary>
+    public IEnumerable<PaymentMethodInfo> GetPaymentMethodsInfo()
+    {
+        return new[]
+        {
+            new PaymentMethodInfo("COD", "Thanh toán khi nhận hàng", false),
+            new PaymentMethodInfo("MOMO", "Ví Momo", true),
+            new PaymentMethodInfo("VNPAY", "VNPay", true),
+            new PaymentMethodInfo("ZALOPAY", "ZaloPay", true),
+            new PaymentMethodInfo("BANK", "Chuyển khoản ngân hàng", true)
+        };
     }
 }
+
+/// <summary>
+/// Thông tin phương thức thanh toán
+/// </summary>
+public record PaymentMethodInfo(string Code, string Name, bool RequiresOnlinePayment);
 
 

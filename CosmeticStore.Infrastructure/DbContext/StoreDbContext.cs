@@ -24,6 +24,16 @@ public class StoreDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<User> Users { get; set; }
 
     /// <summary>
+    /// Bảng Orders trong database
+    /// </summary>
+    public DbSet<Order> Orders { get; set; }
+
+    /// <summary>
+    /// Bảng OrderItems trong database
+    /// </summary>
+    public DbSet<OrderItem> OrderItems { get; set; }
+
+    /// <summary>
     /// Cấu hình mapping Entity sang bảng
     /// </summary>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -150,6 +160,122 @@ public class StoreDbContext : Microsoft.EntityFrameworkCore.DbContext
             // Indexes
             entity.HasIndex(e => e.VipLevel);
             entity.HasIndex(e => e.SkinType);
+
+            // Query Filter: Soft Delete
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        // ==========================================
+        // CẤU HÌNH BẢNG ORDER
+        // ==========================================
+        modelBuilder.Entity<Order>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            // Order Number - Unique
+            entity.Property(e => e.OrderNumber)
+                .IsRequired()
+                .HasMaxLength(20);
+
+            entity.HasIndex(e => e.OrderNumber)
+                .IsUnique();
+
+            // Price Properties
+            entity.Property(e => e.SubTotal)
+                .HasPrecision(18, 2);
+
+            entity.Property(e => e.ShippingFee)
+                .HasPrecision(18, 2)
+                .HasDefaultValue(0);
+
+            entity.Property(e => e.TotalDiscount)
+                .HasPrecision(18, 2)
+                .HasDefaultValue(0);
+
+            // Status & Payment
+            entity.Property(e => e.Status)
+                .HasConversion<int>()
+                .HasDefaultValue(0);
+
+            entity.Property(e => e.PaymentMethod)
+                .HasConversion<int>();
+
+            entity.Property(e => e.PaymentTransactionId)
+                .HasMaxLength(100);
+
+            entity.Property(e => e.CouponCode)
+                .HasMaxLength(50);
+
+            // Shipping Info
+            entity.Property(e => e.ShippingAddress)
+                .IsRequired()
+                .HasMaxLength(500);
+
+            entity.Property(e => e.ShippingPhone)
+                .IsRequired()
+                .HasMaxLength(20);
+
+            entity.Property(e => e.ReceiverName)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(e => e.Notes)
+                .HasMaxLength(500);
+
+            entity.Property(e => e.CancellationReason)
+                .HasMaxLength(500);
+
+            // Relationships
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasMany(e => e.OrderItems)
+                .WithOne(i => i.Order)
+                .HasForeignKey(i => i.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Indexes
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => e.PaymentMethod);
+
+            // Query Filter: Soft Delete
+            entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        // ==========================================
+        // CẤU HÌNH BẢNG ORDER ITEM
+        // ==========================================
+        modelBuilder.Entity<OrderItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            // Product Snapshot
+            entity.Property(e => e.ProductName)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(e => e.UnitPrice)
+                .HasPrecision(18, 2);
+
+            entity.Property(e => e.DiscountedPrice)
+                .HasPrecision(18, 2);
+
+            entity.Property(e => e.DiscountDescription)
+                .HasMaxLength(500);
+
+            // Relationships
+            entity.HasOne(e => e.Product)
+                .WithMany()
+                .HasForeignKey(e => e.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Indexes
+            entity.HasIndex(e => e.OrderId);
+            entity.HasIndex(e => e.ProductId);
 
             // Query Filter: Soft Delete
             entity.HasQueryFilter(e => !e.IsDeleted);
