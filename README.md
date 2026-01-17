@@ -662,8 +662,5 @@ Content-Type: application/json
 - **MSSV**: 22DH114506
 - **Môn học**: Mẫu Thiết Kế Phần Mềm
 
+---
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 351de3778a4d53146505428c0ac70bc38e944e43

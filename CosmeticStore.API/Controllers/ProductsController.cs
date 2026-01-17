@@ -485,10 +485,14 @@ public class ProductsController : ControllerBase
 
     /// <summary>
     /// Map Product Entity sang ProductResponse ViewModel
+    /// Sử dụng Strategy Pattern để tính giá
     /// </summary>
-    private ProductResponse MapToResponse(Product product)
+    /// <param name="product">Sản phẩm</param>
+    /// <param name="user">Người dùng (null = khách vãng lai)</param>
+    private ProductResponse MapToResponse(Product product, User? user = null)
     {
-        var discountedPrice = _pricingStrategy.CalculatePrice(product.Price);
+        // Strategy Pattern: Tính giá dựa trên Product và User
+        var discountedPrice = _pricingStrategy.CalculatePrice(product, user);
         
         // Nếu sản phẩm đang Flash Sale, áp dụng thêm giảm giá Flash Sale
         if (product.IsInActiveFlashSale())
