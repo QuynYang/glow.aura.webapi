@@ -28,3 +28,4 @@ public interface IPricingStrategy
     string StrategyName { get; }
 }
 
+

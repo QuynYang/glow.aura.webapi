@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using CosmeticStore.Core.Entities;
 using CosmeticStore.Core.Interfaces;
 using CosmeticStore.Infrastructure.DbContext;
 using CosmeticStore.Infrastructure.Repositories;
@@ -24,8 +23,14 @@ builder.Services.AddDbContext<StoreDbContext>(options =>
 // Controller chỉ biết Interface, không biết Implementation cụ thể
 // ==========================================
 
-// Repository Pattern: Đăng ký Generic Repository
-builder.Services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
+// Repository Pattern: Đăng ký Generic Repository cho các Entity chung
+builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+
+// Repository Pattern: Đăng ký Product Repository với các method đặc thù
+// - GetBySkinTypeAsync: Lọc sản phẩm theo loại da
+// - GetExpiringSoonAsync: Lọc sản phẩm cận hạn
+// - GetFlashSaleProductsAsync: Lấy sản phẩm Flash Sale
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
 
 // Strategy Pattern: Đăng ký chiến lược tính giá mặc định
 // Có thể thay đổi sang VipPricingStrategy hoặc SalePricingStrategy tùy logic

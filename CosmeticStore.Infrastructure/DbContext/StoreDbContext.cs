@@ -30,6 +30,7 @@ public class StoreDbContext : Microsoft.EntityFrameworkCore.DbContext
         {
             entity.HasKey(e => e.Id);
             
+            // Basic Properties
             entity.Property(e => e.Name)
                 .IsRequired()
                 .HasMaxLength(200);
@@ -49,9 +50,40 @@ public class StoreDbContext : Microsoft.EntityFrameworkCore.DbContext
             entity.Property(e => e.ImageUrl)
                 .HasMaxLength(500);
 
+            // Cosmetic-Specific Properties
+            entity.Property(e => e.SkinType)
+                .HasConversion<int>(); // Store enum as int
+
+            entity.Property(e => e.ExpiryDate);
+
+            entity.Property(e => e.IsFlashSale)
+                .HasDefaultValue(false);
+
+            entity.Property(e => e.FlashSaleDiscount)
+                .HasPrecision(5, 2)
+                .HasDefaultValue(0);
+
+            entity.Property(e => e.FlashSaleEndTime);
+
+            entity.Property(e => e.Ingredients)
+                .HasMaxLength(2000);
+
+            entity.Property(e => e.UsageInstructions)
+                .HasMaxLength(1000);
+
+            entity.Property(e => e.Volume)
+                .HasMaxLength(50);
+
+            // Indexes cho tối ưu query
+            entity.HasIndex(e => e.SkinType);
+            entity.HasIndex(e => e.ExpiryDate);
+            entity.HasIndex(e => e.IsFlashSale);
+            entity.HasIndex(e => e.Brand);
+            entity.HasIndex(e => e.Category);
+            entity.HasIndex(e => e.Price);
+
             // Query Filter: Tự động lọc bỏ các record đã xóa mềm
             entity.HasQueryFilter(e => !e.IsDeleted);
         });
     }
 }
-
