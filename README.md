@@ -83,7 +83,8 @@ Dự án được tổ chức theo mô hình **Clean Architecture** (Kiến trú
  ┃ ┃ ┣ 📄 Product.cs                  # Entity sản phẩm - Encapsulation
  ┃ ┃ ┣ 📄 User.cs                     # Entity người dùng - VIP & SkinType
  ┃ ┃ ┣ 📄 Order.cs                    # Entity đơn hàng - Aggregate Root
- ┃ ┃ ┗ 📄 OrderItem.cs                # Entity chi tiết đơn hàng
+ ┃ ┃ ┣ 📄 OrderItem.cs                # Entity chi tiết đơn hàng
+ ┃ ┃ ┗ 📄 SystemLog.cs                # Entity log hệ thống - Singleton Logger
  ┃ ┣ 📂 Enums/
  ┃ ┃ ┣ 📄 SkinType.cs                 # Enum loại da (Oily, Dry, Sensitive...)
  ┃ ┃ ┣ 📄 VipLevel.cs                 # Enum cấp VIP (Bronze, Silver, Gold, Platinum)
@@ -105,7 +106,18 @@ Dự án được tổ chức theo mô hình **Clean Architecture** (Kiến trú
  ┃ ┃ ┣ 📄 IPriceDecorator.cs          # Abstract class Decorator Pattern
  ┃ ┃ ┣ 📄 IPricingService.cs          # Interface Pricing Orchestrator
  ┃ ┃ ┣ 📄 IPaymentService.cs          # Interface Payment Services
- ┃ ┃ ┗ 📄 IAppLogger.cs               # Interface Logger (Singleton)
+ ┃ ┃ ┣ 📄 IPaymentGateway.cs          # Interface cổng thanh toán (Factory)
+ ┃ ┃ ┣ 📄 IAppLogger.cs               # Interface Logger (Singleton)
+ ┃ ┃ ┗ 📄 ISystemLogger.cs            # Interface Logger nâng cao (5 levels)
+ ┃ ┣ 📂 Events/                       # Observer Pattern - Domain Events
+ ┃ ┃ ┣ 📄 IDomainEvent.cs             # Interface + Base class
+ ┃ ┃ ┣ 📄 IDomainEventHandler.cs      # Interface Handler + INotificationService
+ ┃ ┃ ┣ 📄 OrderEvents.cs              # Order-related events
+ ┃ ┃ ┣ 📄 ProductEvents.cs            # Product-related events
+ ┃ ┃ ┗ 📄 ReviewEvents.cs             # Review-related events
+ ┃ ┣ 📂 SkinQuiz/                     # AI Skin Quiz (Giai đoạn 5)
+ ┃ ┃ ┣ 📄 SkinQuizModels.cs           # DTOs + SkinTypeInfo chi tiết
+ ┃ ┃ ┗ 📄 SkinQuizQuestions.cs        # 10 câu hỏi với điểm số
  ┃ ┗ 📄 CosmeticStore.Core.csproj
  ┃
  ┣ 📂 CosmeticStore.Infrastructure/   # Tầng Infrastructure
@@ -135,14 +147,23 @@ Dự án được tổ chức theo mô hình **Clean Architecture** (Kiến trú
  ┃ ┃ ┣ 📄 ZaloPayGateway.cs           # Cổng ZaloPay
  ┃ ┃ ┣ 📄 VNPayGateway.cs             # Cổng VNPay
  ┃ ┃ ┗ 📄 CODGateway.cs               # Thanh toán khi nhận hàng
+ ┃ ┣ 📂 Events/                       # Observer Pattern
+ ┃ ┃ ┗ 📄 DomainEventDispatcher.cs    # Trung tâm phân phối events
  ┃ ┣ 📂 Services/
  ┃ ┃ ┣ 📄 PricingService.cs           # Orchestrator Strategy + Decorator
  ┃ ┃ ┣ 📄 AppLogger.cs                # Logger (Singleton qua DI)
+ ┃ ┃ ┣ 📄 SystemLogger.cs             # Logger nâng cao (File + DB, Batch Write)
+ ┃ ┃ ┣ 📄 NotificationService.cs      # Gửi Email/SMS/Push/Admin Alert
  ┃ ┃ ┣ 📄 PaymentFactory.cs           # Factory tạo Payment Service (Legacy)
  ┃ ┃ ┣ 📄 MomoPaymentService.cs       # Thanh toán Momo
  ┃ ┃ ┣ 📄 CodPaymentService.cs        # Thanh toán COD
  ┃ ┃ ┣ 📄 VnPayPaymentService.cs      # Thanh toán VNPay
- ┃ ┃ ┗ 📄 ZaloPayPaymentService.cs    # Thanh toán ZaloPay
+ ┃ ┃ ┣ 📄 ZaloPayPaymentService.cs    # Thanh toán ZaloPay
+ ┃ ┃ ┗ 📄 SkinQuizService.cs          # AI phân tích loại da
+ ┃ ┣ 📂 Handlers/Notifications/       # Observer Pattern - Handlers
+ ┃ ┃ ┣ 📄 EmailNotificationHandler.cs # Handler gửi Email
+ ┃ ┃ ┣ 📄 SmsNotificationHandler.cs   # Handler gửi SMS
+ ┃ ┃ ┗ 📄 AdminAlertHandler.cs        # Handler thông báo Admin
  ┃ ┗ 📄 CosmeticStore.Infrastructure.csproj
  ┃
  ┣ 📄 CosmeticStore.sln               # Solution file
@@ -777,12 +798,370 @@ if (result.IsSuccess)
 
 ---
 
+### ✅ Giai đoạn 4: Hệ thống phản hồi (Singleton + Observer Pattern)
+
+**Mục tiêu:** Hoàn thành chức năng 6️⃣ (Thông báo), 8️⃣ (Log), 1️⃣2️⃣ (Review).
+
+#### Bước 4.1: System Logger (Singleton Pattern) ✅
+
+| File | Mô tả | Tính năng |
+|------|-------|-----------|
+| `ISystemLogger.cs` | Interface Logger mở rộng | 5 Log Levels, Business Logging |
+| `SystemLog.cs` | Entity lưu log trong DB | Factory Methods, Encapsulation |
+| `SystemLogger.cs` | Singleton implementation | File + DB Logging, Batch Write |
+
+**Singleton Pattern - Workflow:**
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         SINGLETON PATTERN                               │
+│              Toàn hệ thống chỉ có 1 SystemLogger instance               │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│   ┌─────────────┐     ┌─────────────┐     ┌─────────────┐               │
+│   │ Controller  │     │   Handler   │     │   Service   │               │
+│   └──────┬──────┘     └──────┬──────┘     └──────┬──────┘               │
+│          │                   │                   │                       │
+│          └───────────────────┴───────────────────┘                       │
+│                              │                                           │
+│                              ▼                                           │
+│                     ┌─────────────────┐                                  │
+│                     │  ISystemLogger  │ ◄── DI Container (Singleton)    │
+│                     └────────┬────────┘                                  │
+│                              │                                           │
+│                              ▼                                           │
+│                     ┌─────────────────┐                                  │
+│                     │  SystemLogger   │ (1 instance duy nhất)            │
+│                     └────────┬────────┘                                  │
+│                              │                                           │
+│              ┌───────────────┼───────────────┐                           │
+│              ▼               ▼               ▼                           │
+│     ┌────────────────┐ ┌────────────┐ ┌──────────────┐                  │
+│     │   File Log     │ │  Database  │ │   Console    │                  │
+│     │ system-*.log   │ │ SystemLogs │ │  (Dev only)  │                  │
+│     └────────────────┘ └────────────┘ └──────────────┘                  │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**Log Levels:**
+
+| Level | Method | Mô tả | Khi nào dùng |
+|-------|--------|-------|--------------|
+| Debug | `LogDebug()` | Chi tiết phát triển | Development only |
+| Info | `LogInfo()` | Thông tin thường | Hoạt động bình thường |
+| Warning | `LogWarning()` | Cảnh báo | Hành vi không mong muốn |
+| Error | `LogError()` | Lỗi | Exception xảy ra |
+| Critical | `LogCritical()` | Nghiêm trọng | Hệ thống gặp sự cố |
+
+**Business Activity Logging:**
+
+```csharp
+// Đăng ký Singleton trong Program.cs
+builder.Services.AddSingleton<ISystemLogger, SystemLogger>();
+
+// Inject và sử dụng
+public class OrderHandler
+{
+    private readonly ISystemLogger _logger;
+
+    public OrderHandler(ISystemLogger logger)
+    {
+        _logger = logger;
+    }
+
+    public async Task HandleAsync(CreateOrderCommand command)
+    {
+        // Log hoạt động đơn hàng
+        _logger.LogOrderActivity(
+            orderId: order.Id,
+            activityType: OrderActivityType.Created,
+            details: $"Đơn hàng {order.OrderNumber} được tạo",
+            userId: command.UserId
+        );
+
+        // Log thanh toán
+        _logger.LogPaymentActivity(
+            orderId: order.Id,
+            paymentMethod: "MOMO",
+            status: PaymentActivityStatus.Success,
+            amount: 500000,
+            transactionId: "MOMO123456"
+        );
+
+        // Log sản phẩm
+        _logger.LogProductActivity(
+            productId: product.Id,
+            activityType: ProductActivityType.StockUpdated,
+            details: "Trừ 5 sản phẩm",
+            userId: userId
+        );
+    }
+}
+```
+
+**Tính năng nổi bật:**
+
+| Tính năng | Mô tả |
+|-----------|-------|
+| **File Logging** | Ghi vào `logs/system-yyyy-MM-dd.log` |
+| **DB Logging** | Lưu vào bảng `SystemLogs` để query |
+| **Batch Writing** | Queue 50 logs rồi ghi 1 lần |
+| **Thread-safe** | ConcurrentQueue cho multi-thread |
+| **Auto Flush** | Tự động ghi mỗi 5 giây |
+| **Query Support** | GetLogsByDate, SearchLogs... |
+
+---
+
+#### Bước 4.2: Observer Pattern (Domain Events) ✅
+
+**OBSERVER PATTERN** - Cơ chế lắng nghe và phản hồi sự kiện trong hệ thống.
+
+| File | Mô tả | Pattern |
+|------|-------|---------|
+| `IDomainEvent.cs` | Interface Event + Base class | Observer |
+| `OrderEvents.cs` | Events: Created, Confirmed, Cancelled, Payment... | Observer |
+| `ProductEvents.cs` | Events: Expiring, LowStock, FlashSale... | Observer |
+| `ReviewEvents.cs` | Events: Created, Reported, Approved... | Observer |
+| `IDomainEventHandler.cs` | Interface Handler + INotificationService | Observer |
+| `DomainEventDispatcher.cs` | Trung tâm phân phối events | Observer |
+| `NotificationService.cs` | Gửi Email/SMS/Push/Admin Alert | Observer |
+| `EmailNotificationHandler.cs` | Handler gửi Email | Observer |
+| `SmsNotificationHandler.cs` | Handler gửi SMS | Observer |
+| `AdminAlertHandler.cs` | Handler thông báo Admin | Observer |
+
+**Observer Pattern - Workflow:**
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         OBSERVER PATTERN                                │
+│                       (Domain Events Flow)                              │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│   ┌─────────────────────┐                                               │
+│   │ CreateOrderHandler  │ ── raise ──► OrderCreatedEvent                │
+│   └─────────────────────┘                    │                          │
+│                                              ▼                          │
+│                                 ┌────────────────────────┐              │
+│                                 │ DomainEventDispatcher  │              │
+│                                 │   (Subject/Publisher)  │              │
+│                                 └───────────┬────────────┘              │
+│                                             │                           │
+│              ┌──────────────────────────────┼───────────────────┐       │
+│              │                              │                   │       │
+│              ▼                              ▼                   ▼       │
+│   ┌──────────────────┐        ┌──────────────────┐  ┌─────────────────┐ │
+│   │ EmailHandler     │        │  SmsHandler      │  │ AdminHandler    │ │
+│   │ (Observer 1)     │        │  (Observer 2)    │  │ (Observer 3)    │ │
+│   └────────┬─────────┘        └────────┬─────────┘  └────────┬────────┘ │
+│            │                           │                     │          │
+│            ▼                           ▼                     ▼          │
+│      📧 Send Email              📱 Send SMS           🚨 Alert Admin   │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**Các Events được định nghĩa:**
+
+| Event | Mô tả | Handlers |
+|-------|-------|----------|
+| `OrderCreatedEvent` | Đơn hàng được tạo | Email, SMS |
+| `OrderConfirmedEvent` | Đơn hàng xác nhận | SMS |
+| `OrderCancelledEvent` | Đơn hàng bị hủy | Email |
+| `OrderDeliveredEvent` | Giao hàng thành công | SMS |
+| `PaymentSuccessEvent` | Thanh toán thành công | Email |
+| `PaymentFailedEvent` | Thanh toán thất bại | SMS, Admin |
+| `ProductExpiringSoonEvent` | Sản phẩm sắp hết hạn | Admin |
+| `ProductLowStockEvent` | Sản phẩm sắp hết hàng | Admin |
+| `FlashSaleActivatedEvent` | Kích hoạt Flash Sale | Admin |
+| `ReviewCreatedEvent` | Review mới | Admin |
+| `ReviewReportedEvent` | Review bị báo cáo | Admin |
+
+**Ví dụ sử dụng:**
+
+```csharp
+public class CreateOrderCommandHandler : ICommandHandler<CreateOrderCommand, CreateOrderResult>
+{
+    private readonly IDomainEventDispatcher _eventDispatcher;
+
+    public async Task<CommandResult<CreateOrderResult>> HandleAsync(CreateOrderCommand command)
+    {
+        // 1. Tạo đơn hàng...
+        var order = new Order(...);
+
+        // 2. Raise event - Tất cả handlers tự động được gọi
+        await _eventDispatcher.PublishAsync(new OrderCreatedEvent(
+            orderId: order.Id,
+            orderNumber: order.OrderNumber,
+            userId: user.Id,
+            userEmail: user.Email,
+            userPhone: user.PhoneNumber,
+            userName: user.FullName,
+            totalAmount: order.TotalAmount,
+            itemCount: order.ItemCount,
+            shippingAddress: order.ShippingAddress,
+            paymentMethod: order.PaymentMethod
+        ));
+
+        // → EmailNotificationHandler nhận event → Gửi email
+        // → SmsNotificationHandler nhận event → Gửi SMS
+        // → Không cần biết có bao nhiêu handlers
+
+        return CommandResult<CreateOrderResult>.Success(result);
+    }
+}
+```
+
+**Lợi ích Observer Pattern:**
+
+| Lợi ích | Mô tả |
+|---------|-------|
+| **Loose Coupling** | Handler không biết Entity, Entity không biết Handler |
+| **Single Responsibility** | Mỗi handler chỉ làm 1 việc (SRP) |
+| **Open/Closed** | Thêm handler mới không sửa code cũ (OCP) |
+| **Extensibility** | Dễ dàng thêm notification channels mới |
+| **Testability** | Test từng handler độc lập |
+
+---
+
+### ✅ Giai đoạn 5: AI & Tính năng nâng cao
+
+**Mục tiêu:** Hoàn thành chức năng 9️⃣ (Skin Quiz), 🔟 (Try-on), 1️⃣1️⃣ (Expiry Automation).
+
+#### Bước 5.1: AI Skin Quiz (Strategy Context) ✅
+
+| File | Mô tả | Layer |
+|------|-------|-------|
+| `SkinQuiz/SkinQuizModels.cs` | DTOs + SkinTypeInfo chi tiết | Core |
+| `SkinQuiz/SkinQuizQuestions.cs` | 10 câu hỏi với điểm số | Core |
+| `ISkinQuizService.cs` | Interface Skin Quiz Service | Core |
+| `SkinQuizService.cs` | Logic phân tích loại da | Infrastructure |
+| `SkinQuizController.cs` | 6 API endpoints | API |
+
+**AI Skin Quiz - Workflow:**
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        AI SKIN QUIZ SYSTEM                              │
+│                   (Strategy Pattern Integration)                        │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  1️⃣ User trả lời 10 câu hỏi                                            │
+│     ┌─────────────────────────────────────────┐                         │
+│     │ Q1: Sau rửa mặt 30p, da thế nào?        │                         │
+│     │ Q2: Lỗ chân lông trông ra sao?          │                         │
+│     │ Q3: Có hay bị mụn không?                │                         │
+│     │ ...                                     │                         │
+│     │ Q10: Vấn đề lo lắng nhất?               │                         │
+│     └─────────────────────────────────────────┘                         │
+│                          │                                              │
+│                          ▼                                              │
+│  2️⃣ Hệ thống tính điểm cho mỗi loại da                                 │
+│     ┌─────────────────────────────────────────┐                         │
+│     │ Oily: 15 | Dry: 8 | Sensitive: 5        │                         │
+│     │ Normal: 3 | Combination: 12             │                         │
+│     │                                         │                         │
+│     │ → Kết quả: DA DẦU (Oily) - 42% tin cậy  │                         │
+│     └─────────────────────────────────────────┘                         │
+│                          │                                              │
+│                          ▼                                              │
+│  3️⃣ Cập nhật User.SkinType = Oily                                      │
+│                          │                                              │
+│                          ▼                                              │
+│  4️⃣ STRATEGY PATTERN tự động áp dụng                                   │
+│     ┌─────────────────────────────────────────┐                         │
+│     │ PricingService.CalculateFinalPrice()    │                         │
+│     │                                         │                         │
+│     │ if (user.SkinType == product.SkinType)  │                         │
+│     │   → SkinTypePricingStrategy (5% OFF)    │                         │
+│     └─────────────────────────────────────────┘                         │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**API Endpoints:**
+
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| `GET` | `/api/skinquiz/questions` | Lấy 10 câu hỏi |
+| `POST` | `/api/skinquiz/analyze` | Gửi trả lời, nhận kết quả |
+| `GET` | `/api/skinquiz/skin-types` | Lấy tất cả loại da |
+| `GET` | `/api/skinquiz/skin-types/{type}` | Chi tiết loại da |
+| `GET` | `/api/skinquiz/recommendations/{type}` | Sản phẩm gợi ý |
+| `GET` | `/api/skinquiz/status/{userId}` | Kiểm tra đã làm quiz |
+
+**Kết quả phân tích bao gồm:**
+
+| Field | Mô tả |
+|-------|-------|
+| `SkinTypeName` | Tên loại da (Da Dầu, Da Khô...) |
+| `Description` | Mô tả chi tiết về loại da |
+| `Characteristics` | Đặc điểm nhận dạng |
+| `RecommendedIngredients` | Thành phần nên dùng |
+| `IngredientsToAvoid` | Thành phần nên tránh |
+| `SkincareTips` | Lời khuyên chăm sóc da |
+| `ConfidencePercent` | Độ tin cậy kết quả |
+| `MatchingProductCount` | Số sản phẩm phù hợp |
+| `SkinTypeDiscountPercent` | 5% discount cho sản phẩm phù hợp |
+
+**Ví dụ sử dụng:**
+
+```http
+POST /api/skinquiz/analyze
+Content-Type: application/json
+
+{
+  "userId": 1,
+  "answers": [
+    { "questionId": 1, "selectedOptionId": "1a" },
+    { "questionId": 2, "selectedOptionId": "2a" },
+    { "questionId": 3, "selectedOptionId": "3a" },
+    { "questionId": 4, "selectedOptionId": "4e" },
+    { "questionId": 5, "selectedOptionId": "5a" },
+    { "questionId": 6, "selectedOptionId": "6a" },
+    { "questionId": 7, "selectedOptionId": "7a" },
+    { "questionId": 8, "selectedOptionId": "8a" },
+    { "questionId": 9, "selectedOptionId": "9a" },
+    { "questionId": 10, "selectedOptionId": "10a" }
+  ]
+}
+```
+
+```json
+{
+  "skinType": "Oily",
+  "skinTypeName": "Da Dầu",
+  "description": "Da dầu tiết nhiều bã nhờn, đặc biệt ở vùng chữ T...",
+  "characteristics": [
+    "Tiết nhiều dầu, đặc biệt vùng chữ T",
+    "Lỗ chân lông to, dễ thấy",
+    "Dễ bị mụn đầu đen, mụn ẩn"
+  ],
+  "recommendedIngredients": [
+    "Salicylic Acid (BHA)",
+    "Niacinamide",
+    "Tea Tree Oil"
+  ],
+  "skincareTips": [
+    "Rửa mặt 2 lần/ngày với sữa rửa mặt dạng gel",
+    "Đắp mặt nạ đất sét 1-2 lần/tuần"
+  ],
+  "confidencePercent": 42,
+  "matchingProductCount": 15,
+  "hasSkinTypeDiscount": true,
+  "skinTypeDiscountPercent": 5
+}
+```
+
+---
+
 ### ⏳ Giai đoạn tiếp theo (Đang phát triển)
 
 | Giai đoạn | Mô tả | Pattern |
 |-----------|-------|---------|
-| **Giai đoạn 4** | Thông báo | Observer Pattern |
-| **Giai đoạn 5** | Ghi log nâng cao | Singleton Pattern |
+| **Bước 5.2** | Virtual Try-on | Module Integration |
+| **Bước 5.3** | Expiry Automation | Background Service |
+| **Bước 4.3** | Review System | Repository + Observer |
 
 ---
 
@@ -797,6 +1176,7 @@ if (result.IsSuccess)
 | `Entities/User.cs` | Entity người dùng với VipLevel, SkinType | **Đóng gói** |
 | `Entities/Order.cs` | Entity đơn hàng - Aggregate Root | **Đóng gói + Command** |
 | `Entities/OrderItem.cs` | Entity chi tiết đơn hàng | **Đóng gói** |
+| `Entities/SystemLog.cs` | Entity log hệ thống (DB Logging) | **Singleton + Factory Methods** |
 | `Enums/SkinType.cs` | Enum loại da (Oily, Dry, Sensitive, Normal, Combination) | - |
 | `Enums/VipLevel.cs` | Enum cấp VIP (None, Bronze, Silver, Gold, Platinum) | - |
 | `Enums/OrderStatus.cs` | Enum trạng thái đơn hàng (Pending → Completed) | - |
@@ -816,6 +1196,15 @@ if (result.IsSuccess)
 | `Interfaces/IPaymentService.cs` | Interface Payment Services | **Trừu tượng** |
 | `Interfaces/IPaymentGateway.cs` | Interface cổng thanh toán | **Factory** |
 | `Interfaces/IAppLogger.cs` | Interface Logger (Singleton) | **Singleton** |
+| `Interfaces/ISystemLogger.cs` | Interface Logger nâng cao (5 levels, Business Logging) | **Singleton** |
+| `Events/IDomainEvent.cs` | Interface Domain Event + Base class | **Observer** |
+| `Events/IDomainEventHandler.cs` | Interface Handler + INotificationService | **Observer** |
+| `Events/OrderEvents.cs` | Events: Created, Confirmed, Cancelled, Payment... | **Observer** |
+| `Events/ProductEvents.cs` | Events: Expiring, LowStock, FlashSale... | **Observer** |
+| `Events/ReviewEvents.cs` | Events: Created, Reported, Approved... | **Observer** |
+| `SkinQuiz/SkinQuizModels.cs` | DTOs + SkinTypeInfo chi tiết (5 loại da) | **AI Quiz** |
+| `SkinQuiz/SkinQuizQuestions.cs` | 10 câu hỏi với điểm số | **AI Quiz** |
+| `Interfaces/ISkinQuizService.cs` | Interface AI Skin Quiz | **Strategy Context** |
 
 ### 📂 CosmeticStore.Infrastructure (Tầng Hạ tầng)
 
@@ -838,6 +1227,7 @@ if (result.IsSuccess)
 | `Handlers/PayOrderCommandHandler.cs` | Handler thanh toán | **Command + Factory** |
 | `Services/PricingService.cs` | Orchestrator Strategy + Decorator | **Service** |
 | `Services/AppLogger.cs` | Logger (Singleton qua DI) | **Singleton** |
+| `Services/SystemLogger.cs` | Logger nâng cao (File + DB, Batch Write) | **Singleton** |
 | `Services/PaymentFactory.cs` | Factory tạo Payment Service | **Factory** |
 | `Services/MomoPaymentService.cs` | Xử lý thanh toán Momo | **Đa hình** |
 | `Services/CodPaymentService.cs` | Xử lý thanh toán COD | **Đa hình** |
@@ -848,6 +1238,12 @@ if (result.IsSuccess)
 | `Gateways/ZaloPayGateway.cs` | Cổng thanh toán ZaloPay | **Factory** |
 | `Gateways/VNPayGateway.cs` | Cổng thanh toán VNPay | **Factory** |
 | `Gateways/CODGateway.cs` | Thanh toán khi nhận hàng | **Factory** |
+| `Events/DomainEventDispatcher.cs` | Trung tâm phân phối Domain Events | **Observer** |
+| `Services/NotificationService.cs` | Gửi Email/SMS/Push/Admin Alert | **Observer** |
+| `Handlers/Notifications/EmailNotificationHandler.cs` | Handler gửi Email thông báo | **Observer** |
+| `Handlers/Notifications/SmsNotificationHandler.cs` | Handler gửi SMS thông báo | **Observer** |
+| `Handlers/Notifications/AdminAlertHandler.cs` | Handler thông báo Admin | **Observer** |
+| `Services/SkinQuizService.cs` | AI phân tích loại da (Strategy Context) | **AI Quiz** |
 
 ### 📂 CosmeticStore.API (Tầng Presentation)
 
@@ -855,6 +1251,7 @@ if (result.IsSuccess)
 |------|-------|-------------|
 | `Program.cs` | Entry point, cấu hình DI | **DI Container** |
 | `Controllers/ProductsController.cs` | 30+ API endpoints | **Constructor Injection** |
+| `Controllers/SkinQuizController.cs` | 6 API endpoints cho AI Skin Quiz | **AI Quiz** |
 | `ViewModels/ProductViewModels.cs` | DTOs, PaginatedResponse | - |
 
 ---

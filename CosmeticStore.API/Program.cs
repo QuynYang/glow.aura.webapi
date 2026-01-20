@@ -3,8 +3,11 @@ using CosmeticStore.Core.Commands;
 using CosmeticStore.Core.Commands.Orders;
 using CosmeticStore.Core.Interfaces;
 using CosmeticStore.Infrastructure.DbContext;
+using CosmeticStore.Core.Events;
+using CosmeticStore.Infrastructure.Events;
 using CosmeticStore.Infrastructure.Gateways;
 using CosmeticStore.Infrastructure.Handlers;
+using CosmeticStore.Infrastructure.Handlers.Notifications;
 using CosmeticStore.Infrastructure.Repositories;
 using CosmeticStore.Infrastructure.Services;
 using CosmeticStore.Infrastructure.Strategies;
@@ -57,6 +60,15 @@ builder.Services.AddScoped<SkinTypePricingStrategy>();
 // - Tự động wrap Decorator cần thiết (Expiry, FlashSale, Coupon)
 builder.Services.AddScoped<IPricingService, PricingService>();
 
+// ==========================================
+// GIAI ĐOẠN 5: AI & Nâng cao
+// ==========================================
+// AI Skin Quiz Service:
+// - Phân tích câu trả lời → Xác định loại da
+// - Cập nhật User.SkinType → User hưởng SkinTypePricingStrategy
+// - Gợi ý sản phẩm phù hợp loại da
+builder.Services.AddScoped<ISkinQuizService, SkinQuizService>();
+
 // Factory Pattern: Đăng ký Payment Factory (Legacy)
 builder.Services.AddScoped<PaymentFactory>();
 
@@ -70,6 +82,16 @@ builder.Services.AddScoped<PaymentGatewayFactory>();
 // Singleton Pattern: Đăng ký Logger - Toàn hệ thống dùng chung 1 instance
 // - Ghi log API request, lỗi thanh toán, tạo/hủy đơn
 builder.Services.AddSingleton<IAppLogger, AppLogger>();
+
+// ==========================================
+// SINGLETON PATTERN: System Logger (Nâng cao)
+// ==========================================
+// - Chỉ có 1 instance duy nhất trong toàn bộ vòng đời ứng dụng
+// - Ghi log vào File (logs/system-yyyy-MM-dd.log)
+// - Ghi log vào Database (bảng SystemLogs)
+// - Thread-safe với ConcurrentQueue
+// - Batch writing để tối ưu hiệu năng
+builder.Services.AddSingleton<ISystemLogger, SystemLogger>();
 
 // ==========================================
 // COMMAND PATTERN: Đăng ký Command Handlers
@@ -90,11 +112,49 @@ builder.Services.AddScoped<ICommandHandler<ConfirmOrderCommand, ConfirmOrderResu
 builder.Services.AddScoped<ICommandHandler<PayOrderCommand, PayOrderResult>, PayOrderCommandHandler>();
 
 // ==========================================
+// OBSERVER PATTERN: Domain Events & Handlers
+// ==========================================
+// - Domain Event Dispatcher: Phân phối events đến handlers
+// - Notification Service: Gửi Email/SMS/Push/Admin Alert
+// - Event Handlers: Lắng nghe và xử lý events
+
+// Core Services
+builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+
+// Email Notification Handlers
+builder.Services.AddScoped<IDomainEventHandler<OrderCreatedEvent>, OrderCreatedEmailHandler>();
+builder.Services.AddScoped<IDomainEventHandler<PaymentSuccessEvent>, PaymentSuccessEmailHandler>();
+builder.Services.AddScoped<IDomainEventHandler<OrderCancelledEvent>, OrderCancelledEmailHandler>();
+
+// SMS Notification Handlers
+builder.Services.AddScoped<IDomainEventHandler<OrderCreatedEvent>, OrderCreatedSmsHandler>();
+builder.Services.AddScoped<IDomainEventHandler<OrderConfirmedEvent>, OrderConfirmedSmsHandler>();
+builder.Services.AddScoped<IDomainEventHandler<PaymentFailedEvent>, PaymentFailedSmsHandler>();
+builder.Services.AddScoped<IDomainEventHandler<OrderDeliveredEvent>, OrderDeliveredSmsHandler>();
+
+// Admin Alert Handlers
+builder.Services.AddScoped<IDomainEventHandler<ReviewCreatedEvent>, ReviewCreatedAdminHandler>();
+builder.Services.AddScoped<IDomainEventHandler<ReviewReportedEvent>, ReviewReportedAdminHandler>();
+builder.Services.AddScoped<IDomainEventHandler<ProductExpiringSoonEvent>, ProductExpiringSoonAdminHandler>();
+builder.Services.AddScoped<IDomainEventHandler<ProductLowStockEvent>, ProductLowStockAdminHandler>();
+builder.Services.AddScoped<IDomainEventHandler<PaymentFailedEvent>, PaymentFailedAdminHandler>();
+builder.Services.AddScoped<IDomainEventHandler<FlashSaleActivatedEvent>, FlashSaleNotificationHandler>();
+
+// ==========================================
 // 3. CẤU HÌNH API & SWAGGER
 // ==========================================
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApi();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "CosmeticStore API",
+        Version = "v1",
+        Description = "API bán mỹ phẩm - Áp dụng OOP & Design Patterns"
+    });
+});
 
 var app = builder.Build();
 
@@ -103,11 +163,11 @@ var app = builder.Build();
 // ==========================================
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
-    // Swagger UI: http://localhost:5xxx/swagger
+    app.UseSwagger();
+    // Swagger UI: http://localhost:5278/swagger
     app.UseSwaggerUI(options =>
     {
-        options.SwaggerEndpoint("/openapi/v1.json", "CosmeticStore API v1");
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "CosmeticStore API v1");
     });
 }
 

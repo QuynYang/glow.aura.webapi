@@ -43,27 +43,27 @@ public class CommandResult<T>
     /// <summary>
     /// Thành công hay không
     /// </summary>
-    public bool IsSuccess { get; private set; }
+    public bool IsSuccess { get; protected set; }
 
     /// <summary>
     /// Dữ liệu trả về (nếu thành công)
     /// </summary>
-    public T? Data { get; private set; }
+    public T? Data { get; protected set; }
 
     /// <summary>
     /// Thông báo lỗi (nếu thất bại)
     /// </summary>
-    public string? ErrorMessage { get; private set; }
+    public string? ErrorMessage { get; protected set; }
 
     /// <summary>
     /// Mã lỗi (nếu thất bại)
     /// </summary>
-    public string? ErrorCode { get; private set; }
+    public string? ErrorCode { get; protected set; }
 
     /// <summary>
     /// Danh sách lỗi validation
     /// </summary>
-    public Dictionary<string, string[]>? ValidationErrors { get; private set; }
+    public Dictionary<string, string[]>? ValidationErrors { get; protected set; }
 
     /// <summary>
     /// Tạo kết quả thành công

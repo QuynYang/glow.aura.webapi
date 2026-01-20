@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using CosmeticStore.Core.Entities;
+using CosmeticStore.Core.Enums;
+using CosmeticStore.Core.Interfaces;
 
 namespace CosmeticStore.Infrastructure.DbContext;
 
@@ -32,6 +34,11 @@ public class StoreDbContext : Microsoft.EntityFrameworkCore.DbContext
     /// Bảng OrderItems trong database
     /// </summary>
     public DbSet<OrderItem> OrderItems { get; set; }
+
+    /// <summary>
+    /// Bảng SystemLogs trong database - Singleton Logger ghi dữ liệu vào đây
+    /// </summary>
+    public DbSet<SystemLog> SystemLogs { get; set; }
 
     /// <summary>
     /// Cấu hình mapping Entity sang bảng
@@ -138,7 +145,7 @@ public class StoreDbContext : Microsoft.EntityFrameworkCore.DbContext
             // VIP & Loyalty Properties
             entity.Property(e => e.VipLevel)
                 .HasConversion<int>()
-                .HasDefaultValue(0);
+                .HasDefaultValue(VipLevel.None);
 
             entity.Property(e => e.TotalSpent)
                 .HasPrecision(18, 2)
@@ -150,7 +157,7 @@ public class StoreDbContext : Microsoft.EntityFrameworkCore.DbContext
             // Skin Type Properties
             entity.Property(e => e.SkinType)
                 .HasConversion<int>()
-                .HasDefaultValue(0);
+                .HasDefaultValue(SkinType.Normal);
 
             entity.Property(e => e.HasCompletedSkinQuiz)
                 .HasDefaultValue(false);
@@ -195,7 +202,7 @@ public class StoreDbContext : Microsoft.EntityFrameworkCore.DbContext
             // Status & Payment
             entity.Property(e => e.Status)
                 .HasConversion<int>()
-                .HasDefaultValue(0);
+                .HasDefaultValue(OrderStatus.Pending);
 
             entity.Property(e => e.PaymentMethod)
                 .HasConversion<int>();
@@ -279,6 +286,70 @@ public class StoreDbContext : Microsoft.EntityFrameworkCore.DbContext
 
             // Query Filter: Soft Delete
             entity.HasQueryFilter(e => !e.IsDeleted);
+        });
+
+        // ==========================================
+        // CẤU HÌNH BẢNG SYSTEM LOG (Singleton Logger)
+        // ==========================================
+        modelBuilder.Entity<SystemLog>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            // Timestamp
+            entity.Property(e => e.Timestamp)
+                .IsRequired();
+
+            // Log Level
+            entity.Property(e => e.Level)
+                .HasConversion<int>();
+
+            // Category
+            entity.Property(e => e.Category)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            // Message
+            entity.Property(e => e.Message)
+                .IsRequired()
+                .HasMaxLength(4000);
+
+            // Data (JSON)
+            entity.Property(e => e.Data)
+                .HasMaxLength(8000);
+
+            // Exception Details
+            entity.Property(e => e.ExceptionDetails)
+                .HasMaxLength(4000);
+
+            // Stack Trace
+            entity.Property(e => e.StackTrace)
+                .HasMaxLength(8000);
+
+            // Request Info
+            entity.Property(e => e.IpAddress)
+                .HasMaxLength(50);
+
+            entity.Property(e => e.RequestPath)
+                .HasMaxLength(500);
+
+            entity.Property(e => e.HttpMethod)
+                .HasMaxLength(10);
+
+            entity.Property(e => e.RelatedEntityType)
+                .HasMaxLength(50);
+
+            entity.Property(e => e.MachineName)
+                .HasMaxLength(100);
+
+            // Indexes for performance
+            entity.HasIndex(e => e.Timestamp);
+            entity.HasIndex(e => e.Level);
+            entity.HasIndex(e => e.Category);
+            entity.HasIndex(e => new { e.RelatedEntityType, e.RelatedEntityId });
+            entity.HasIndex(e => e.UserId);
+
+            // Không áp dụng Soft Delete cho logs
+            // Logs cần được giữ nguyên để audit
         });
     }
 }

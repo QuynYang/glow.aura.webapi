@@ -42,7 +42,7 @@ public class ProductsController : ControllerBase
     public async Task<ActionResult<IEnumerable<ProductResponse>>> GetAll()
     {
         var products = await _productRepository.GetAllAsync();
-        var response = products.Select(MapToResponse);
+        var response = products.Select(p => MapToResponse(p));
         return Ok(response);
     }
 
@@ -188,7 +188,7 @@ public class ProductsController : ControllerBase
     public async Task<ActionResult<IEnumerable<ProductResponse>>> GetBySkinType(SkinType skinType)
     {
         var products = await _productRepository.GetBySkinTypeAsync(skinType);
-        var response = products.Select(MapToResponse);
+        var response = products.Select(p => MapToResponse(p));
         return Ok(response);
     }
 
@@ -208,7 +208,7 @@ public class ProductsController : ControllerBase
 
         return Ok(new PaginatedResponse<ProductResponse>
         {
-            Items = products.Select(MapToResponse),
+            Items = products.Select(p => MapToResponse(p)).ToList(),
             TotalCount = totalCount,
             PageNumber = pageNumber,
             PageSize = pageSize
@@ -227,7 +227,7 @@ public class ProductsController : ControllerBase
     public async Task<ActionResult<IEnumerable<ProductResponse>>> GetExpiringSoon([FromQuery] int days = 30)
     {
         var products = await _productRepository.GetExpiringSoonAsync(days);
-        var response = products.Select(MapToResponse);
+        var response = products.Select(p => MapToResponse(p));
         return Ok(response);
     }
 
@@ -239,7 +239,7 @@ public class ProductsController : ControllerBase
     public async Task<ActionResult<IEnumerable<ProductResponse>>> GetExpired()
     {
         var products = await _productRepository.GetExpiredProductsAsync();
-        var response = products.Select(MapToResponse);
+        var response = products.Select(p => MapToResponse(p));
         return Ok(response);
     }
 
@@ -255,7 +255,7 @@ public class ProductsController : ControllerBase
     public async Task<ActionResult<IEnumerable<ProductResponse>>> GetFlashSale()
     {
         var products = await _productRepository.GetFlashSaleProductsAsync();
-        var response = products.Select(MapToResponse);
+        var response = products.Select(p => MapToResponse(p));
         return Ok(response);
     }
 
@@ -316,7 +316,7 @@ public class ProductsController : ControllerBase
     public async Task<ActionResult<IEnumerable<ProductResponse>>> GetByBrand(string brand)
     {
         var products = await _productRepository.GetByBrandAsync(brand);
-        var response = products.Select(MapToResponse);
+        var response = products.Select(p => MapToResponse(p));
         return Ok(response);
     }
 
@@ -328,7 +328,7 @@ public class ProductsController : ControllerBase
     public async Task<ActionResult<IEnumerable<ProductResponse>>> GetByCategory(string category)
     {
         var products = await _productRepository.GetByCategoryAsync(category);
-        var response = products.Select(MapToResponse);
+        var response = products.Select(p => MapToResponse(p));
         return Ok(response);
     }
 
@@ -368,7 +368,7 @@ public class ProductsController : ControllerBase
         [FromQuery] decimal maxPrice)
     {
         var products = await _productRepository.GetByPriceRangeAsync(minPrice, maxPrice);
-        var response = products.Select(MapToResponse);
+        var response = products.Select(p => MapToResponse(p));
         return Ok(response);
     }
 
@@ -380,7 +380,7 @@ public class ProductsController : ControllerBase
     public async Task<ActionResult<IEnumerable<ProductResponse>>> GetLowStock([FromQuery] int threshold = 10)
     {
         var products = await _productRepository.GetLowStockProductsAsync(threshold);
-        var response = products.Select(MapToResponse);
+        var response = products.Select(p => MapToResponse(p));
         return Ok(response);
     }
 
@@ -392,7 +392,7 @@ public class ProductsController : ControllerBase
     public async Task<ActionResult<IEnumerable<ProductResponse>>> GetOutOfStock()
     {
         var products = await _productRepository.GetOutOfStockProductsAsync();
-        var response = products.Select(MapToResponse);
+        var response = products.Select(p => MapToResponse(p));
         return Ok(response);
     }
 
@@ -411,7 +411,7 @@ public class ProductsController : ControllerBase
             return BadRequest("Vui lòng nhập từ khóa tìm kiếm");
 
         var products = await _productRepository.SearchAsync(keyword);
-        var response = products.Select(MapToResponse);
+        var response = products.Select(p => MapToResponse(p));
         return Ok(response);
     }
 
@@ -445,7 +445,7 @@ public class ProductsController : ControllerBase
 
         return Ok(new PaginatedResponse<ProductResponse>
         {
-            Items = products.Select(MapToResponse),
+            Items = products.Select(p => MapToResponse(p)).ToList(),
             TotalCount = totalCount,
             PageNumber = request.PageNumber,
             PageSize = request.PageSize

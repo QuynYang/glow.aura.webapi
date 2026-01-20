@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using CosmeticStore.Core.Commands;
 using CosmeticStore.Core.Commands.Orders;
+using CosmeticStore.Core.Enums;
 using CosmeticStore.Core.Interfaces;
 
 namespace CosmeticStore.Infrastructure.Handlers;
