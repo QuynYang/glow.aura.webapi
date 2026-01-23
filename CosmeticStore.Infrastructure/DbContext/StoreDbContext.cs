@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using CosmeticStore.Core.Entities;
-using CosmeticStore.Core.Enums;
 using CosmeticStore.Core.Interfaces;
 
 namespace CosmeticStore.Infrastructure.DbContext;
@@ -145,7 +144,7 @@ public class StoreDbContext : Microsoft.EntityFrameworkCore.DbContext
             // VIP & Loyalty Properties
             entity.Property(e => e.VipLevel)
                 .HasConversion<int>()
-                .HasDefaultValue(VipLevel.None);
+                .HasDefaultValue(0);
 
             entity.Property(e => e.TotalSpent)
                 .HasPrecision(18, 2)
@@ -157,16 +156,33 @@ public class StoreDbContext : Microsoft.EntityFrameworkCore.DbContext
             // Skin Type Properties
             entity.Property(e => e.SkinType)
                 .HasConversion<int>()
-                .HasDefaultValue(SkinType.Normal);
+                .HasDefaultValue(0);
 
             entity.Property(e => e.HasCompletedSkinQuiz)
                 .HasDefaultValue(false);
 
             entity.Property(e => e.SkinQuizCompletedAt);
 
+            // Authentication Properties
+            entity.Property(e => e.Role)
+                .HasConversion<int>()
+                .HasDefaultValue(0);
+
+            entity.Property(e => e.IsActive)
+                .HasDefaultValue(true);
+
+            entity.Property(e => e.LastLoginAt);
+
+            entity.Property(e => e.RefreshToken)
+                .HasMaxLength(500);
+
+            entity.Property(e => e.RefreshTokenExpiryTime);
+
             // Indexes
             entity.HasIndex(e => e.VipLevel);
             entity.HasIndex(e => e.SkinType);
+            entity.HasIndex(e => e.Role);
+            entity.HasIndex(e => e.IsActive);
 
             // Query Filter: Soft Delete
             entity.HasQueryFilter(e => !e.IsDeleted);
@@ -202,7 +218,7 @@ public class StoreDbContext : Microsoft.EntityFrameworkCore.DbContext
             // Status & Payment
             entity.Property(e => e.Status)
                 .HasConversion<int>()
-                .HasDefaultValue(OrderStatus.Pending);
+                .HasDefaultValue(0);
 
             entity.Property(e => e.PaymentMethod)
                 .HasConversion<int>();

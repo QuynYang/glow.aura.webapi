@@ -1,4 +1,8 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using CosmeticStore.Core.Commands;
 using CosmeticStore.Core.Commands.Orders;
 using CosmeticStore.Core.Interfaces;
@@ -25,10 +29,54 @@ builder.Services.AddDbContext<StoreDbContext>(options =>
 );
 
 // ==========================================
-// 2. ĐĂNG KÝ DEPENDENCY INJECTION (DI)
+// 2. CẤU HÌNH JWT AUTHENTICATION
+// ==========================================
+var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "CosmeticStore_SuperSecretKey_12345678901234567890";
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "CosmeticStore.API";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "CosmeticStore.Client";
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtIssuer,
+        ValidAudience = jwtAudience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+        ClockSkew = TimeSpan.Zero // Không cho phép sai lệch thời gian
+    };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnAuthenticationFailed = context =>
+        {
+            if (context.Exception.GetType() == typeof(SecurityTokenExpiredException))
+            {
+                context.Response.Headers.Append("Token-Expired", "true");
+            }
+            return Task.CompletedTask;
+        }
+    };
+});
+
+builder.Services.AddAuthorization();
+
+// ==========================================
+// 3. ĐĂNG KÝ DEPENDENCY INJECTION (DI)
 // Áp dụng tính TRỪU TƯỢNG (Abstraction)
 // Controller chỉ biết Interface, không biết Implementation cụ thể
 // ==========================================
+
+// Authentication Service: Đăng ký, Đăng nhập, JWT Token
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 // Repository Pattern: Đăng ký Generic Repository cho các Entity chung
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
@@ -142,37 +190,75 @@ builder.Services.AddScoped<IDomainEventHandler<PaymentFailedEvent>, PaymentFaile
 builder.Services.AddScoped<IDomainEventHandler<FlashSaleActivatedEvent>, FlashSaleNotificationHandler>();
 
 // ==========================================
-// 3. CẤU HÌNH API & SWAGGER
+// 4. CẤU HÌNH API & SWAGGER
 // ==========================================
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
+
+// Swagger với JWT Authentication
+builder.Services.AddSwaggerGen(options =>
 {
-    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    options.SwaggerDoc("v1", new OpenApiInfo
     {
         Title = "CosmeticStore API",
         Version = "v1",
-        Description = "API bán mỹ phẩm - Áp dụng OOP & Design Patterns"
+        Description = "API cho hệ thống bán mỹ phẩm - Đồ án OOP với Design Patterns",
+        Contact = new OpenApiContact
+        {
+            Name = "CosmeticStore Team",
+            Email = "support@cosmeticstore.com"
+        }
+    });
+
+    // Cấu hình JWT Bearer cho Swagger
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Nhập JWT token vào đây. Ví dụ: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
     });
 });
 
 var app = builder.Build();
 
 // ==========================================
-// 4. MIDDLEWARE PIPELINE
+// 5. MIDDLEWARE PIPELINE
 // ==========================================
 if (app.Environment.IsDevelopment())
 {
+    // Swagger UI: http://localhost:5xxx/swagger
     app.UseSwagger();
-    // Swagger UI: http://localhost:5278/swagger
     app.UseSwaggerUI(options =>
     {
         options.SwaggerEndpoint("/swagger/v1/swagger.json", "CosmeticStore API v1");
+        options.RoutePrefix = "swagger";
     });
 }
 
 app.UseHttpsRedirection();
+
+// QUAN TRỌNG: Authentication phải trước Authorization
+app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
 
 app.Run();

@@ -44,6 +44,32 @@ public class User : BaseEntity
     /// </summary>
     public string? AvatarUrl { get; private set; }
 
+    /// <summary>
+    /// Vai trò người dùng (User, Staff, Admin)
+    /// Quan trọng cho Authorization
+    /// </summary>
+    public UserRole Role { get; private set; } = UserRole.User;
+
+    /// <summary>
+    /// Trạng thái hoạt động của tài khoản
+    /// </summary>
+    public bool IsActive { get; private set; } = true;
+
+    /// <summary>
+    /// Thời gian đăng nhập lần cuối
+    /// </summary>
+    public DateTime? LastLoginAt { get; private set; }
+
+    /// <summary>
+    /// Refresh Token cho JWT (lưu để validate)
+    /// </summary>
+    public string? RefreshToken { get; private set; }
+
+    /// <summary>
+    /// Thời hạn Refresh Token
+    /// </summary>
+    public DateTime? RefreshTokenExpiryTime { get; private set; }
+
     #endregion
 
     #region VIP & Loyalty Properties
@@ -109,7 +135,88 @@ public class User : BaseEntity
         Email = email.ToLower().Trim();
         PasswordHash = passwordHash;
         FullName = fullName.Trim();
+        Role = UserRole.User; // Mặc định là User
     }
+
+    /// <summary>
+    /// Constructor với Role - Dùng để tạo Admin/Staff
+    /// </summary>
+    public User(string email, string passwordHash, string fullName, UserRole role) 
+        : this(email, passwordHash, fullName)
+    {
+        Role = role;
+    }
+
+    #endregion
+
+    #region Authentication Methods
+
+    /// <summary>
+    /// Cập nhật thời gian đăng nhập
+    /// </summary>
+    public void RecordLogin()
+    {
+        LastLoginAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Cập nhật Refresh Token
+    /// </summary>
+    public void SetRefreshToken(string refreshToken, DateTime expiryTime)
+    {
+        RefreshToken = refreshToken;
+        RefreshTokenExpiryTime = expiryTime;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Xóa Refresh Token (Logout)
+    /// </summary>
+    public void RevokeRefreshToken()
+    {
+        RefreshToken = null;
+        RefreshTokenExpiryTime = null;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Kiểm tra Refresh Token còn hợp lệ không
+    /// </summary>
+    public bool IsRefreshTokenValid(string token)
+    {
+        return RefreshToken == token && 
+               RefreshTokenExpiryTime.HasValue && 
+               RefreshTokenExpiryTime.Value > DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Kích hoạt/Vô hiệu hóa tài khoản
+    /// </summary>
+    public void SetActiveStatus(bool isActive)
+    {
+        IsActive = isActive;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Thay đổi vai trò (chỉ Admin mới được gọi)
+    /// </summary>
+    public void ChangeRole(UserRole newRole)
+    {
+        Role = newRole;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Kiểm tra có phải Admin không
+    /// </summary>
+    public bool IsAdmin => Role == UserRole.Admin;
+
+    /// <summary>
+    /// Kiểm tra có phải Staff hoặc Admin không
+    /// </summary>
+    public bool IsStaffOrAdmin => Role == UserRole.Staff || Role == UserRole.Admin;
 
     #endregion
 

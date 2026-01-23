@@ -70,11 +70,17 @@ Dự án được tổ chức theo mô hình **Clean Architecture** (Kiến trú
 📦 CosmeticStore/
  ┣ 📂 CosmeticStore.API/              # Tầng API (Presentation Layer)
  ┃ ┣ 📂 Controllers/
- ┃ ┃ ┗ 📄 ProductsController.cs       # Controller quản lý sản phẩm (30+ endpoints)
+ ┃ ┃ ┣ 📄 AuthController.cs           # Đăng ký, Đăng nhập, JWT Token
+ ┃ ┃ ┣ 📄 UserController.cs           # Quản lý User, Profile, Admin
+ ┃ ┃ ┣ 📄 OrderController.cs          # CRUD Order với Command Pattern
+ ┃ ┃ ┣ 📄 ProductsController.cs       # Controller quản lý sản phẩm (30+ endpoints)
+ ┃ ┃ ┗ 📄 SkinQuizController.cs       # AI Skin Quiz endpoints
  ┃ ┣ 📂 ViewModels/
- ┃ ┃ ┗ 📄 ProductViewModels.cs        # Request/Response models
- ┃ ┣ 📄 Program.cs                    # Entry point, cấu hình DI
- ┃ ┣ 📄 appsettings.json              # Cấu hình ứng dụng
+ ┃ ┃ ┣ 📄 AuthViewModels.cs           # Register, Login, Token DTOs
+ ┃ ┃ ┣ 📄 OrderViewModels.cs          # Order Request/Response DTOs
+ ┃ ┃ ┗ 📄 ProductViewModels.cs        # Product Request/Response models
+ ┃ ┣ 📄 Program.cs                    # Entry point, cấu hình DI, JWT
+ ┃ ┣ 📄 appsettings.json              # Cấu hình ứng dụng, JWT settings
  ┃ ┗ 📄 CosmeticStore.API.csproj
  ┃
  ┣ 📂 CosmeticStore.Core/             # Tầng Core (Domain Layer)
@@ -88,6 +94,7 @@ Dự án được tổ chức theo mô hình **Clean Architecture** (Kiến trú
  ┃ ┣ 📂 Enums/
  ┃ ┃ ┣ 📄 SkinType.cs                 # Enum loại da (Oily, Dry, Sensitive...)
  ┃ ┃ ┣ 📄 VipLevel.cs                 # Enum cấp VIP (Bronze, Silver, Gold, Platinum)
+ ┃ ┃ ┣ 📄 UserRole.cs                 # Enum vai trò (User, Staff, Admin)
  ┃ ┃ ┣ 📄 OrderStatus.cs              # Enum trạng thái đơn hàng
  ┃ ┃ ┗ 📄 PaymentMethod.cs            # Enum phương thức thanh toán
  ┃ ┣ 📂 Commands/                     # Command Pattern
@@ -108,7 +115,8 @@ Dự án được tổ chức theo mô hình **Clean Architecture** (Kiến trú
  ┃ ┃ ┣ 📄 IPaymentService.cs          # Interface Payment Services
  ┃ ┃ ┣ 📄 IPaymentGateway.cs          # Interface cổng thanh toán (Factory)
  ┃ ┃ ┣ 📄 IAppLogger.cs               # Interface Logger (Singleton)
- ┃ ┃ ┗ 📄 ISystemLogger.cs            # Interface Logger nâng cao (5 levels)
+ ┃ ┃ ┣ 📄 ISystemLogger.cs            # Interface Logger nâng cao (5 levels)
+ ┃ ┃ ┗ 📄 IAuthService.cs             # Interface Authentication (JWT)
  ┃ ┣ 📂 Events/                       # Observer Pattern - Domain Events
  ┃ ┃ ┣ 📄 IDomainEvent.cs             # Interface + Base class
  ┃ ┃ ┣ 📄 IDomainEventHandler.cs      # Interface Handler + INotificationService
@@ -159,7 +167,8 @@ Dự án được tổ chức theo mô hình **Clean Architecture** (Kiến trú
  ┃ ┃ ┣ 📄 CodPaymentService.cs        # Thanh toán COD
  ┃ ┃ ┣ 📄 VnPayPaymentService.cs      # Thanh toán VNPay
  ┃ ┃ ┣ 📄 ZaloPayPaymentService.cs    # Thanh toán ZaloPay
- ┃ ┃ ┗ 📄 SkinQuizService.cs          # AI phân tích loại da
+ ┃ ┃ ┣ 📄 SkinQuizService.cs          # AI phân tích loại da
+ ┃ ┃ ┗ 📄 AuthService.cs              # JWT Token + Password Hash (PBKDF2)
  ┃ ┣ 📂 Handlers/Notifications/       # Observer Pattern - Handlers
  ┃ ┃ ┣ 📄 EmailNotificationHandler.cs # Handler gửi Email
  ┃ ┃ ┣ 📄 SmsNotificationHandler.cs   # Handler gửi SMS
@@ -1155,6 +1164,127 @@ Content-Type: application/json
 
 ---
 
+### ✅ Giai đoạn 6: Authentication & Authorization (JWT)
+
+**Mục tiêu:** Hoàn thành chức năng Đăng ký, Đăng nhập, Phân quyền.
+
+#### Bước 6.1: User Role & Entity ✅
+
+| File | Mô tả |
+|------|-------|
+| `UserRole.cs` | Enum vai trò: User, Staff, Admin |
+| `User.cs` | Thêm: Role, IsActive, LastLoginAt, RefreshToken |
+
+**User Entity - Các property mới:**
+
+```csharp
+public class User : BaseEntity
+{
+    // ... existing properties ...
+    
+    // Authentication
+    public UserRole Role { get; private set; } = UserRole.User;
+    public bool IsActive { get; private set; } = true;
+    public DateTime? LastLoginAt { get; private set; }
+    public string? RefreshToken { get; private set; }
+    public DateTime? RefreshTokenExpiryTime { get; private set; }
+    
+    // Methods
+    public void RecordLogin() { ... }
+    public void SetRefreshToken(string token, DateTime expiry) { ... }
+    public void RevokeRefreshToken() { ... }
+    public bool IsRefreshTokenValid(string token) { ... }
+    public void ChangeRole(UserRole newRole) { ... }
+    public bool IsAdmin => Role == UserRole.Admin;
+    public bool IsStaffOrAdmin => Role >= UserRole.Staff;
+}
+```
+
+#### Bước 6.2: Authentication Service ✅
+
+| File | Mô tả |
+|------|-------|
+| `IAuthService.cs` | Interface Register, Login, JWT |
+| `AuthService.cs` | Implementation với PBKDF2 + JWT |
+
+**JWT Token Flow:**
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         JWT AUTHENTICATION FLOW                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  1️⃣ Login Request                                                       │
+│     POST /api/auth/login { email, password }                            │
+│                          │                                              │
+│                          ▼                                              │
+│  2️⃣ AuthService.LoginAsync()                                           │
+│     ├── Validate email exists                                           │
+│     ├── Verify password (PBKDF2)                                        │
+│     ├── Generate Access Token (JWT, 1h)                                 │
+│     ├── Generate Refresh Token (random, 7d)                             │
+│     └── Save RefreshToken to User                                       │
+│                          │                                              │
+│                          ▼                                              │
+│  3️⃣ Response                                                            │
+│     { accessToken, refreshToken, expiresAt, user }                      │
+│                          │                                              │
+│                          ▼                                              │
+│  4️⃣ Client lưu tokens, gửi kèm mỗi request                              │
+│     Authorization: Bearer <accessToken>                                 │
+│                          │                                              │
+│                          ▼                                              │
+│  5️⃣ JWT Middleware validate token                                       │
+│     ├── Check signature                                                 │
+│     ├── Check expiry                                                    │
+│     ├── Extract claims (UserId, Role, VipLevel, SkinType)               │
+│     └── Populate User.Identity                                          │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**JWT Token chứa các Claims:**
+
+| Claim | Mô tả |
+|-------|-------|
+| `NameIdentifier` | User ID |
+| `Email` | Email người dùng |
+| `Name` | Họ tên |
+| `Role` | Vai trò (User/Staff/Admin) |
+| `VipLevel` | Cấp VIP |
+| `SkinType` | Loại da |
+
+#### Bước 6.3: Controllers với Authorization ✅
+
+| Controller | Mô tả | Authorization |
+|------------|-------|---------------|
+| `AuthController` | Register, Login, RefreshToken, Logout | Public / [Authorize] |
+| `UserController` | Profile, Admin quản lý users | [Authorize], [Authorize(Roles = "Admin")] |
+| `OrderController` | CRUD Order + Command Pattern | [Authorize], [Authorize(Roles = "Admin,Staff")] |
+
+**Ví dụ Authorization:**
+
+```csharp
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]  // Tất cả endpoints cần đăng nhập
+public class UserController : ControllerBase
+{
+    [HttpGet("me")]  // User tự xem profile
+    public async Task<ActionResult<UserResponse>> GetCurrentUser() { ... }
+    
+    [HttpGet]
+    [Authorize(Roles = "Admin,Staff")]  // Chỉ Admin/Staff
+    public async Task<ActionResult> GetAllUsers() { ... }
+    
+    [HttpPatch("{id}/role")]
+    [Authorize(Roles = "Admin")]  // Chỉ Admin
+    public async Task<ActionResult> ChangeUserRole(int id) { ... }
+}
+```
+
+---
+
 ### ⏳ Giai đoạn tiếp theo (Đang phát triển)
 
 | Giai đoạn | Mô tả | Pattern |
@@ -1181,6 +1311,7 @@ Content-Type: application/json
 | `Enums/VipLevel.cs` | Enum cấp VIP (None, Bronze, Silver, Gold, Platinum) | - |
 | `Enums/OrderStatus.cs` | Enum trạng thái đơn hàng (Pending → Completed) | - |
 | `Enums/PaymentMethod.cs` | Enum phương thức thanh toán (COD, Momo, VNPay...) | - |
+| `Enums/UserRole.cs` | Enum vai trò người dùng (User, Staff, Admin) | - |
 | `Commands/ICommand.cs` | Interface và Base class cho Command | **Command** |
 | `Commands/ICommandHandler.cs` | Interface Handler và CommandResult | **Command** |
 | `Commands/Orders/CreateOrderCommand.cs` | Command tạo đơn hàng | **Command** |
@@ -1197,6 +1328,7 @@ Content-Type: application/json
 | `Interfaces/IPaymentGateway.cs` | Interface cổng thanh toán | **Factory** |
 | `Interfaces/IAppLogger.cs` | Interface Logger (Singleton) | **Singleton** |
 | `Interfaces/ISystemLogger.cs` | Interface Logger nâng cao (5 levels, Business Logging) | **Singleton** |
+| `Interfaces/IAuthService.cs` | Interface Authentication (JWT, Password Hash) | **Trừu tượng** |
 | `Events/IDomainEvent.cs` | Interface Domain Event + Base class | **Observer** |
 | `Events/IDomainEventHandler.cs` | Interface Handler + INotificationService | **Observer** |
 | `Events/OrderEvents.cs` | Events: Created, Confirmed, Cancelled, Payment... | **Observer** |
@@ -1244,14 +1376,20 @@ Content-Type: application/json
 | `Handlers/Notifications/SmsNotificationHandler.cs` | Handler gửi SMS thông báo | **Observer** |
 | `Handlers/Notifications/AdminAlertHandler.cs` | Handler thông báo Admin | **Observer** |
 | `Services/SkinQuizService.cs` | AI phân tích loại da (Strategy Context) | **AI Quiz** |
+| `Services/AuthService.cs` | JWT Token + Password Hash (PBKDF2) | **Authentication** |
 
 ### 📂 CosmeticStore.API (Tầng Presentation)
 
 | File | Mô tả | OOP/Pattern |
 |------|-------|-------------|
-| `Program.cs` | Entry point, cấu hình DI | **DI Container** |
+| `Program.cs` | Entry point, cấu hình DI, JWT Auth | **DI Container** |
+| `Controllers/AuthController.cs` | Register, Login, RefreshToken, Logout | **Authentication** |
+| `Controllers/UserController.cs` | Profile, Admin quản lý users | **Authorization** |
+| `Controllers/OrderController.cs` | CRUD Order với Command Pattern | **Command Pattern** |
 | `Controllers/ProductsController.cs` | 30+ API endpoints | **Constructor Injection** |
 | `Controllers/SkinQuizController.cs` | 6 API endpoints cho AI Skin Quiz | **AI Quiz** |
+| `ViewModels/AuthViewModels.cs` | Register, Login, Token DTOs | - |
+| `ViewModels/OrderViewModels.cs` | Order Request/Response DTOs | - |
 | `ViewModels/ProductViewModels.cs` | DTOs, PaginatedResponse | - |
 
 ---
@@ -1308,7 +1446,112 @@ Truy cập Swagger UI: `http://localhost:5xxx/swagger`
 
 ## 📡 API Endpoints
 
-### CRUD Cơ bản
+### 🔐 Authentication (AuthController)
+
+| Method | Endpoint | Mô tả | Auth |
+|--------|----------|-------|------|
+| `POST` | `/api/auth/register` | Đăng ký tài khoản mới | ❌ |
+| `POST` | `/api/auth/login` | Đăng nhập, nhận JWT Token | ❌ |
+| `POST` | `/api/auth/refresh-token` | Làm mới Access Token | ❌ |
+| `POST` | `/api/auth/logout` | Đăng xuất (revoke token) | ✅ |
+| `POST` | `/api/auth/change-password` | Đổi mật khẩu | ✅ |
+
+**Ví dụ đăng ký:**
+
+```http
+POST /api/auth/register
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "Password123",
+  "confirmPassword": "Password123",
+  "fullName": "Nguyễn Văn A",
+  "phoneNumber": "0901234567"
+}
+```
+
+**Response:**
+
+```json
+{
+  "isSuccess": true,
+  "message": "Đăng ký thành công",
+  "token": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4...",
+    "accessTokenExpiry": "2026-01-23T15:00:00Z",
+    "refreshTokenExpiry": "2026-01-30T14:00:00Z"
+  },
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "fullName": "Nguyễn Văn A",
+    "role": "User",
+    "vipLevel": "None"
+  }
+}
+```
+
+---
+
+### 👤 User Management (UserController)
+
+| Method | Endpoint | Mô tả | Auth |
+|--------|----------|-------|------|
+| `GET` | `/api/user/me` | Lấy profile của tôi | ✅ User |
+| `PUT` | `/api/user/me` | Cập nhật profile | ✅ User |
+| `GET` | `/api/user/me/loyalty` | Xem VIP & điểm thưởng | ✅ User |
+| `GET` | `/api/user` | Danh sách users | ✅ Admin/Staff |
+| `GET` | `/api/user/{id}` | Chi tiết user | ✅ Admin/Staff |
+| `POST` | `/api/user` | Tạo user (chỉ định role) | ✅ Admin |
+| `PATCH` | `/api/user/{id}/role` | Đổi role | ✅ Admin |
+| `PATCH` | `/api/user/{id}/status` | Khóa/mở tài khoản | ✅ Admin |
+| `DELETE` | `/api/user/{id}` | Xóa user | ✅ Admin |
+| `GET` | `/api/user/stats` | Thống kê users | ✅ Admin |
+
+---
+
+### 🛒 Order Management (OrderController)
+
+| Method | Endpoint | Mô tả | Auth |
+|--------|----------|-------|------|
+| `POST` | `/api/order` | Tạo đơn hàng | ✅ User |
+| `GET` | `/api/order/my-orders` | Đơn hàng của tôi | ✅ User |
+| `GET` | `/api/order/{id}` | Chi tiết đơn hàng | ✅ User/Staff |
+| `POST` | `/api/order/{id}/cancel` | Hủy đơn | ✅ User |
+| `POST` | `/api/order/{id}/pay` | Thanh toán | ✅ User |
+| `GET` | `/api/order` | Tất cả đơn hàng | ✅ Admin/Staff |
+| `POST` | `/api/order/{id}/confirm` | Xác nhận đơn | ✅ Admin/Staff |
+| `PATCH` | `/api/order/{id}/status` | Cập nhật trạng thái | ✅ Admin/Staff |
+| `GET` | `/api/order/stats` | Thống kê đơn hàng | ✅ Admin |
+| `GET` | `/api/order/pending` | Đơn chờ xử lý | ✅ Admin/Staff |
+| `GET` | `/api/order/by-number/{orderNumber}` | Tìm theo mã đơn | ✅ Admin/Staff |
+
+**Ví dụ tạo đơn hàng:**
+
+```http
+POST /api/order
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+
+{
+  "items": [
+    { "productId": 1, "quantity": 2 },
+    { "productId": 3, "quantity": 1 }
+  ],
+  "shippingAddress": "123 Nguyễn Văn Linh, Q.7, TP.HCM",
+  "shippingPhone": "0901234567",
+  "receiverName": "Nguyễn Văn A",
+  "paymentMethod": 1,
+  "notes": "Giao giờ hành chính",
+  "couponCode": "SALE10"
+}
+```
+
+---
+
+### 📦 Product Management (CRUD Cơ bản)
 
 | Method | Endpoint | Mô tả |
 |--------|----------|-------|
