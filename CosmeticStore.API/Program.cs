@@ -15,6 +15,10 @@ using CosmeticStore.Infrastructure.Handlers.Notifications;
 using CosmeticStore.Infrastructure.Repositories;
 using CosmeticStore.Infrastructure.Services;
 using CosmeticStore.Infrastructure.Strategies;
+using CosmeticStore.Core.Interfaces.Notifications;
+using CosmeticStore.Infrastructure.Services.Notifications;
+using CosmeticStore.Core.Builders;
+using CosmeticStore.Infrastructure.Builders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -147,8 +151,21 @@ builder.Services.AddSingleton<ISystemLogger, SystemLogger>();
 // Single Responsibility: Mỗi handler chỉ làm 1 việc
 // ==========================================
 
+// ==========================================
+// BUILDER PATTERN: Order Builder
+// ==========================================
+// OrderBuilder: Xây dựng Order phức tạp từng bước
+// - Fluent Interface: WithUser().WithItems().WithVoucher().Build()
+// - Tích hợp Strategy + Decorator Pattern để tính giá
+// - Validate tự động khi Build()
+builder.Services.AddScoped<IOrderBuilder, OrderBuilder>();
+
 // CreateOrderCommandHandler: Validate → Tính giá → Lưu DB → Log
 builder.Services.AddScoped<ICommandHandler<CreateOrderCommand, CreateOrderResult>, CreateOrderCommandHandler>();
+
+// CreateOrderWithBuilderHandler: Alternative handler sử dụng Builder Pattern
+// Uncomment dòng dưới để sử dụng Builder thay vì handler cũ
+// builder.Services.AddScoped<ICommandHandler<CreateOrderCommand, CreateOrderResult>, CreateOrderWithBuilderHandler>();
 
 // CancelOrderCommandHandler: Validate → Hủy → Hoàn tồn kho → Log
 builder.Services.AddScoped<ICommandHandler<CancelOrderCommand, CancelOrderResult>, CancelOrderCommandHandler>();
@@ -158,6 +175,14 @@ builder.Services.AddScoped<ICommandHandler<ConfirmOrderCommand, ConfirmOrderResu
 
 // PayOrderCommandHandler: Validate → Factory tạo Payment Service → Process → Log
 builder.Services.AddScoped<ICommandHandler<PayOrderCommand, PayOrderResult>, PayOrderCommandHandler>();
+
+// ==========================================
+// ABSTRACT FACTORY PATTERN: Notification System
+// ==========================================
+// - INotificationFactoryProvider: Chọn Factory phù hợp với VIP Level
+// - LuxuryNotificationFactory: Email sang trọng + SMS cá nhân hóa (VIP)
+// - StandardNotificationFactory: Email chuẩn + SMS ngắn gọn (Standard)
+builder.Services.AddSingleton<INotificationFactoryProvider, NotificationFactoryProvider>();
 
 // ==========================================
 // OBSERVER PATTERN: Domain Events & Handlers
@@ -188,6 +213,16 @@ builder.Services.AddScoped<IDomainEventHandler<ProductExpiringSoonEvent>, Produc
 builder.Services.AddScoped<IDomainEventHandler<ProductLowStockEvent>, ProductLowStockAdminHandler>();
 builder.Services.AddScoped<IDomainEventHandler<PaymentFailedEvent>, PaymentFailedAdminHandler>();
 builder.Services.AddScoped<IDomainEventHandler<FlashSaleActivatedEvent>, FlashSaleNotificationHandler>();
+
+// ==========================================
+// ABSTRACT FACTORY PATTERN: VIP-Aware Notification Handlers
+// ==========================================
+// Handlers này sử dụng INotificationFactoryProvider để chọn
+// factory phù hợp (Luxury/Standard) dựa trên VIP Level của user
+builder.Services.AddScoped<IDomainEventHandler<OrderCreatedEvent>, VipAwareOrderCreatedHandler>();
+builder.Services.AddScoped<IDomainEventHandler<UserRegisteredEvent>, VipAwareWelcomeHandler>();
+builder.Services.AddScoped<IDomainEventHandler<VipLevelUpgradedEvent>, VipLevelUpgradedHandler>();
+builder.Services.AddScoped<IDomainEventHandler<PromotionCreatedEvent>, VipAwarePromotionHandler>();
 
 // ==========================================
 // 4. CẤU HÌNH API & SWAGGER

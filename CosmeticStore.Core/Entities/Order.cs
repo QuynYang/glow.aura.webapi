@@ -2,7 +2,6 @@ using CosmeticStore.Core.Enums;
 
 namespace CosmeticStore.Core.Entities;
 
-/// <summary>
 /// Entity Đơn hàng - Aggregate Root
 /// 
 /// OOP - ENCAPSULATION:
@@ -14,124 +13,123 @@ namespace CosmeticStore.Core.Entities;
 /// - CreateOrderCommand -> tạo Order
 /// - ConfirmOrderCommand -> Confirm()
 /// - CancelOrderCommand -> Cancel()
-/// </summary>
 public class Order : BaseEntity
 {
     private readonly List<OrderItem> _orderItems = new();
 
-    /// <summary>
+    
     /// Mã đơn hàng (hiển thị cho khách)
-    /// </summary>
+    
     public string OrderNumber { get; private set; } = string.Empty;
 
-    /// <summary>
+    
     /// ID khách hàng (Foreign Key)
-    /// </summary>
+    
     public int UserId { get; private set; }
 
-    /// <summary>
+    
     /// Trạng thái đơn hàng
-    /// </summary>
+    
     public OrderStatus Status { get; private set; } = OrderStatus.Pending;
 
-    /// <summary>
+    
     /// Tổng tiền hàng (chưa ship)
-    /// </summary>
+    
     public decimal SubTotal { get; private set; }
 
-    /// <summary>
+    
     /// Phí vận chuyển
-    /// </summary>
+    
     public decimal ShippingFee { get; private set; }
 
-    /// <summary>
+    
     /// Tổng giảm giá
-    /// </summary>
+    
     public decimal TotalDiscount { get; private set; }
 
-    /// <summary>
+    
     /// Tổng thanh toán = SubTotal + ShippingFee - TotalDiscount
-    /// </summary>
+    
     public decimal TotalAmount => SubTotal + ShippingFee - TotalDiscount;
 
-    /// <summary>
+    
     /// Phương thức thanh toán
-    /// </summary>
+    
     public PaymentMethod PaymentMethod { get; private set; }
 
-    /// <summary>
+    
     /// Mã giao dịch thanh toán (từ cổng thanh toán)
-    /// </summary>
+    
     public string? PaymentTransactionId { get; private set; }
 
-    /// <summary>
+    
     /// Thời gian thanh toán
-    /// </summary>
+    
     public DateTime? PaidAt { get; private set; }
 
-    /// <summary>
+    
     /// Mã coupon đã dùng
-    /// </summary>
+    
     public string? CouponCode { get; private set; }
 
-    /// <summary>
+    
     /// Địa chỉ giao hàng
-    /// </summary>
+    
     public string ShippingAddress { get; private set; } = string.Empty;
 
-    /// <summary>
+    
     /// Số điện thoại nhận hàng
-    /// </summary>
+    
     public string ShippingPhone { get; private set; } = string.Empty;
 
-    /// <summary>
+    
     /// Tên người nhận
-    /// </summary>
+    
     public string ReceiverName { get; private set; } = string.Empty;
 
-    /// <summary>
+    
     /// Ghi chú đơn hàng
-    /// </summary>
+    
     public string? Notes { get; private set; }
 
-    /// <summary>
+    
     /// Lý do hủy đơn (nếu có)
-    /// </summary>
+    
     public string? CancellationReason { get; private set; }
 
-    /// <summary>
+    
     /// Thời gian hủy
-    /// </summary>
+    
     public DateTime? CancelledAt { get; private set; }
 
-    /// <summary>
+    
     /// Thời gian giao hàng dự kiến
-    /// </summary>
+    
     public DateTime? EstimatedDeliveryDate { get; private set; }
 
-    /// <summary>
+    
     /// Thời gian giao hàng thực tế
-    /// </summary>
+    
     public DateTime? DeliveredAt { get; private set; }
 
-    /// <summary>
+    
     /// Navigation property - User
-    /// </summary>
+    
     public User User { get; private set; } = null!;
 
-    /// <summary>
+    
     /// Danh sách sản phẩm trong đơn hàng (Read-only)
-    /// </summary>
+    
     public IReadOnlyCollection<OrderItem> OrderItems => _orderItems.AsReadOnly();
 
-    /// <summary>
+    
     /// Constructor mặc định cho EF Core
-    /// </summary>
+    
     protected Order() { }
 
-    /// <summary>
+    
     /// Constructor tạo Order mới
-    /// </summary>
+    
     public Order(
         int userId,
         string shippingAddress,
@@ -161,9 +159,9 @@ public class Order : BaseEntity
 
     #region Domain Methods (Encapsulation)
 
-    /// <summary>
+    
     /// Thêm sản phẩm vào đơn hàng
-    /// </summary>
+    
     public void AddItem(OrderItem item)
     {
         if (Status != OrderStatus.Pending)
@@ -174,9 +172,9 @@ public class Order : BaseEntity
         RecalculateTotals();
     }
 
-    /// <summary>
+    
     /// Xóa sản phẩm khỏi đơn hàng
-    /// </summary>
+    
     public void RemoveItem(int productId)
     {
         if (Status != OrderStatus.Pending)
@@ -190,9 +188,9 @@ public class Order : BaseEntity
         }
     }
 
-    /// <summary>
+    
     /// Xác nhận đơn hàng - Gọi từ ConfirmOrderCommand
-    /// </summary>
+    
     public void Confirm()
     {
         if (!Status.CanConfirm())
@@ -206,9 +204,9 @@ public class Order : BaseEntity
         UpdatedAt = DateTime.UtcNow;
     }
 
-    /// <summary>
+    
     /// Hủy đơn hàng - Gọi từ CancelOrderCommand
-    /// </summary>
+    
     public void Cancel(string reason)
     {
         if (!Status.CanCancel())
@@ -223,9 +221,9 @@ public class Order : BaseEntity
         UpdatedAt = DateTime.UtcNow;
     }
 
-    /// <summary>
+    
     /// Đánh dấu đã thanh toán
-    /// </summary>
+    
     public void MarkAsPaid(string transactionId)
     {
         if (!Status.CanPay())
@@ -237,9 +235,9 @@ public class Order : BaseEntity
         UpdatedAt = DateTime.UtcNow;
     }
 
-    /// <summary>
+    
     /// Đánh dấu thanh toán thất bại
-    /// </summary>
+    
     public void MarkPaymentFailed(string? reason = null)
     {
         Status = OrderStatus.PaymentFailed;
@@ -247,9 +245,9 @@ public class Order : BaseEntity
         UpdatedAt = DateTime.UtcNow;
     }
 
-    /// <summary>
+    
     /// Chuyển sang trạng thái đang xử lý
-    /// </summary>
+    
     public void StartProcessing()
     {
         if (Status != OrderStatus.Paid)
@@ -259,9 +257,9 @@ public class Order : BaseEntity
         UpdatedAt = DateTime.UtcNow;
     }
 
-    /// <summary>
+    
     /// Chuyển sang trạng thái đang giao
-    /// </summary>
+    
     public void StartShipping()
     {
         if (Status != OrderStatus.Processing)
@@ -271,9 +269,9 @@ public class Order : BaseEntity
         UpdatedAt = DateTime.UtcNow;
     }
 
-    /// <summary>
+    
     /// Đánh dấu đã giao hàng
-    /// </summary>
+    
     public void MarkAsDelivered()
     {
         if (Status != OrderStatus.Shipping)
@@ -284,9 +282,9 @@ public class Order : BaseEntity
         UpdatedAt = DateTime.UtcNow;
     }
 
-    /// <summary>
+    
     /// Hoàn thành đơn hàng
-    /// </summary>
+    
     public void Complete()
     {
         if (Status != OrderStatus.Delivered)
@@ -296,9 +294,9 @@ public class Order : BaseEntity
         UpdatedAt = DateTime.UtcNow;
     }
 
-    /// <summary>
+    
     /// Hoàn tiền
-    /// </summary>
+    
     public void Refund(string reason)
     {
         if (Status != OrderStatus.Paid && Status != OrderStatus.Processing)
@@ -310,9 +308,9 @@ public class Order : BaseEntity
         UpdatedAt = DateTime.UtcNow;
     }
 
-    /// <summary>
+    
     /// Cập nhật phí ship
-    /// </summary>
+    
     public void SetShippingFee(decimal fee)
     {
         if (fee < 0)
@@ -322,9 +320,9 @@ public class Order : BaseEntity
         UpdatedAt = DateTime.UtcNow;
     }
 
-    /// <summary>
+    
     /// Áp dụng giảm giá tổng
-    /// </summary>
+    
     public void ApplyDiscount(decimal discount)
     {
         if (discount < 0)
@@ -340,18 +338,18 @@ public class Order : BaseEntity
 
     #region Private Methods
 
-    /// <summary>
+    
     /// Tính lại tổng tiền
-    /// </summary>
+    
     private void RecalculateTotals()
     {
         SubTotal = _orderItems.Sum(x => x.TotalPrice);
         UpdatedAt = DateTime.UtcNow;
     }
 
-    /// <summary>
+    
     /// Tạo mã đơn hàng
-    /// </summary>
+    
     private static string GenerateOrderNumber()
     {
         // Format: ORD + YYYYMMDD + Random 4 số

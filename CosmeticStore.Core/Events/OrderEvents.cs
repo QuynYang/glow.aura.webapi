@@ -8,6 +8,9 @@ namespace CosmeticStore.Core.Events;
 /// OBSERVER PATTERN:
 /// - Raised by: CreateOrderCommandHandler
 /// - Handled by: EmailNotificationHandler, SmsNotificationHandler, AppNotificationHandler
+/// 
+/// ABSTRACT FACTORY PATTERN:
+/// - VipAwareOrderCreatedHandler sử dụng UserVipLevel để chọn NotificationFactory phù hợp
 /// </summary>
 public class OrderCreatedEvent : DomainEventBase
 {
@@ -21,6 +24,11 @@ public class OrderCreatedEvent : DomainEventBase
     public int ItemCount { get; }
     public string ShippingAddress { get; }
     public PaymentMethod PaymentMethod { get; }
+    
+    /// <summary>
+    /// VIP Level của user - dùng để chọn NotificationFactory (Abstract Factory Pattern)
+    /// </summary>
+    public VipLevel UserVipLevel { get; }
 
     public OrderCreatedEvent(
         int orderId,
@@ -32,7 +40,8 @@ public class OrderCreatedEvent : DomainEventBase
         decimal totalAmount,
         int itemCount,
         string shippingAddress,
-        PaymentMethod paymentMethod)
+        PaymentMethod paymentMethod,
+        VipLevel userVipLevel = VipLevel.None)
     {
         OrderId = orderId;
         OrderNumber = orderNumber;
@@ -44,6 +53,7 @@ public class OrderCreatedEvent : DomainEventBase
         ItemCount = itemCount;
         ShippingAddress = shippingAddress;
         PaymentMethod = paymentMethod;
+        UserVipLevel = userVipLevel;
     }
 }
 

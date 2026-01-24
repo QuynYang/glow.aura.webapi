@@ -84,6 +84,11 @@ namespace CosmeticStore.Infrastructure.Migrations
                     PhoneNumber = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
                     Address = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     AvatarUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    Role = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
+                    LastLoginAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    RefreshToken = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    RefreshTokenExpiryTime = table.Column<DateTime>(type: "datetime2", nullable: true),
                     VipLevel = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
                     TotalSpent = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false, defaultValue: 0m),
                     LoyaltyPoints = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
@@ -268,6 +273,16 @@ namespace CosmeticStore.Infrastructure.Migrations
                 table: "Users",
                 column: "Email",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_IsActive",
+                table: "Users",
+                column: "IsActive");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_Role",
+                table: "Users",
+                column: "Role");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_SkinType",

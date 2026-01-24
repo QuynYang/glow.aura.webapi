@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using CosmeticStore.Core.Entities;
+using CosmeticStore.Core.Enums;
 using CosmeticStore.Core.Interfaces;
 
 namespace CosmeticStore.Infrastructure.DbContext;
@@ -144,7 +145,7 @@ public class StoreDbContext : Microsoft.EntityFrameworkCore.DbContext
             // VIP & Loyalty Properties
             entity.Property(e => e.VipLevel)
                 .HasConversion<int>()
-                .HasDefaultValue(0);
+                .HasDefaultValue(VipLevel.None);
 
             entity.Property(e => e.TotalSpent)
                 .HasPrecision(18, 2)
@@ -156,7 +157,7 @@ public class StoreDbContext : Microsoft.EntityFrameworkCore.DbContext
             // Skin Type Properties
             entity.Property(e => e.SkinType)
                 .HasConversion<int>()
-                .HasDefaultValue(0);
+                .HasDefaultValue(SkinType.Normal);
 
             entity.Property(e => e.HasCompletedSkinQuiz)
                 .HasDefaultValue(false);
@@ -166,7 +167,7 @@ public class StoreDbContext : Microsoft.EntityFrameworkCore.DbContext
             // Authentication Properties
             entity.Property(e => e.Role)
                 .HasConversion<int>()
-                .HasDefaultValue(0);
+                .HasDefaultValue(UserRole.User);
 
             entity.Property(e => e.IsActive)
                 .HasDefaultValue(true);
@@ -218,7 +219,7 @@ public class StoreDbContext : Microsoft.EntityFrameworkCore.DbContext
             // Status & Payment
             entity.Property(e => e.Status)
                 .HasConversion<int>()
-                .HasDefaultValue(0);
+                .HasDefaultValue(OrderStatus.Pending);
 
             entity.Property(e => e.PaymentMethod)
                 .HasConversion<int>();

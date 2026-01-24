@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CosmeticStore.Infrastructure.Migrations
 {
     [DbContext(typeof(StoreDbContext))]
-    [Migration("20260120004155_InitialCreate")]
+    [Migration("20260123171844_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -405,8 +405,16 @@ namespace CosmeticStore.Infrastructure.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastLoginAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("LoyaltyPoints")
                         .ValueGeneratedOnAdd()
@@ -421,6 +429,18 @@ namespace CosmeticStore.Infrastructure.Migrations
                     b.Property<string>("PhoneNumber")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("RefreshToken")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("RefreshTokenExpiryTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Role")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
 
                     b.Property<DateTime?>("SkinQuizCompletedAt")
                         .HasColumnType("datetime2");
@@ -448,6 +468,10 @@ namespace CosmeticStore.Infrastructure.Migrations
 
                     b.HasIndex("Email")
                         .IsUnique();
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("Role");
 
                     b.HasIndex("SkinType");
 

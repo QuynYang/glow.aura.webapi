@@ -105,6 +105,8 @@ Dự án được tổ chức theo mô hình **Clean Architecture** (Kiến trú
  ┃ ┃   ┣ 📄 CancelOrderCommand.cs     # Hủy đơn hàng
  ┃ ┃   ┣ 📄 ConfirmOrderCommand.cs    # Xác nhận đơn hàng
  ┃ ┃   ┗ 📄 PayOrderCommand.cs        # Thanh toán
+ ┃ ┣ 📂 Builders/                     # Builder Pattern
+ ┃ ┃ ┗ 📄 IOrderBuilder.cs            # Interface Builder + DTOs (CartItem, OrderBuildResult)
  ┃ ┣ 📂 Interfaces/
  ┃ ┃ ┣ 📄 IGenericRepository.cs       # Interface CRUD cơ bản
  ┃ ┃ ┣ 📄 IProductRepository.cs       # Interface đặc thù cho Product
@@ -116,7 +118,12 @@ Dự án được tổ chức theo mô hình **Clean Architecture** (Kiến trú
  ┃ ┃ ┣ 📄 IPaymentGateway.cs          # Interface cổng thanh toán (Factory)
  ┃ ┃ ┣ 📄 IAppLogger.cs               # Interface Logger (Singleton)
  ┃ ┃ ┣ 📄 ISystemLogger.cs            # Interface Logger nâng cao (5 levels)
- ┃ ┃ ┗ 📄 IAuthService.cs             # Interface Authentication (JWT)
+ ┃ ┃ ┣ 📄 IAuthService.cs             # Interface Authentication (JWT)
+ ┃ ┃ ┗ 📂 Notifications/              # Abstract Factory Pattern
+ ┃ ┃   ┣ 📄 IEmailService.cs          # Abstract Product (Email)
+ ┃ ┃   ┣ 📄 ISmsService.cs            # Abstract Product (SMS)
+ ┃ ┃   ┣ 📄 INotificationFactory.cs   # Abstract Factory
+ ┃ ┃   ┗ 📄 INotificationFactoryProvider.cs # Factory Selector
  ┃ ┣ 📂 Events/                       # Observer Pattern - Domain Events
  ┃ ┃ ┣ 📄 IDomainEvent.cs             # Interface + Base class
  ┃ ┃ ┣ 📄 IDomainEventHandler.cs      # Interface Handler + INotificationService
@@ -146,9 +153,12 @@ Dự án được tổ chức theo mô hình **Clean Architecture** (Kiến trú
  ┃ ┃ ┗ 📄 CouponDecorator.cs          # Giảm giá mã coupon
  ┃ ┣ 📂 Handlers/                     # Command Handlers (Single Responsibility)
  ┃ ┃ ┣ 📄 CreateOrderCommandHandler.cs  # Tạo đơn hàng
+ ┃ ┃ ┣ 📄 CreateOrderWithBuilderHandler.cs # Tạo đơn hàng (Builder Pattern)
  ┃ ┃ ┣ 📄 CancelOrderCommandHandler.cs  # Hủy đơn hàng
  ┃ ┃ ┣ 📄 ConfirmOrderCommandHandler.cs # Xác nhận đơn hàng
  ┃ ┃ ┗ 📄 PayOrderCommandHandler.cs     # Thanh toán (dùng Factory)
+ ┃ ┣ 📂 Builders/                      # Builder Pattern
+ ┃ ┃ ┗ 📄 OrderBuilder.cs              # Concrete Builder (Fluent Interface)
  ┃ ┣ 📂 Gateways/                     # Factory Pattern - Payment Gateways
  ┃ ┃ ┣ 📄 PaymentGatewayFactory.cs    # Factory tạo Gateway từ string
  ┃ ┃ ┣ 📄 MomoGateway.cs              # Cổng Momo (QR, DeepLink)
@@ -172,7 +182,16 @@ Dự án được tổ chức theo mô hình **Clean Architecture** (Kiến trú
  ┃ ┣ 📂 Handlers/Notifications/       # Observer Pattern - Handlers
  ┃ ┃ ┣ 📄 EmailNotificationHandler.cs # Handler gửi Email
  ┃ ┃ ┣ 📄 SmsNotificationHandler.cs   # Handler gửi SMS
- ┃ ┃ ┗ 📄 AdminAlertHandler.cs        # Handler thông báo Admin
+ ┃ ┃ ┣ 📄 AdminAlertHandler.cs        # Handler thông báo Admin
+ ┃ ┃ ┗ 📄 VipAwareNotificationHandler.cs # Abstract Factory handlers
+ ┃ ┣ 📂 Services/Notifications/      # Abstract Factory Pattern
+ ┃ ┃ ┣ 📄 LuxuryEmailService.cs       # Concrete Product (VIP Email)
+ ┃ ┃ ┣ 📄 LuxurySmsService.cs         # Concrete Product (VIP SMS)
+ ┃ ┃ ┣ 📄 StandardEmailService.cs     # Concrete Product (Normal Email)
+ ┃ ┃ ┣ 📄 StandardSmsService.cs       # Concrete Product (Normal SMS)
+ ┃ ┃ ┣ 📄 LuxuryNotificationFactory.cs    # Concrete Factory (VIP)
+ ┃ ┃ ┣ 📄 StandardNotificationFactory.cs  # Concrete Factory (Standard)
+ ┃ ┃ ┗ 📄 NotificationFactoryProvider.cs  # Factory Selector
  ┃ ┗ 📄 CosmeticStore.Infrastructure.csproj
  ┃
  ┣ 📄 CosmeticStore.sln               # Solution file
@@ -1285,6 +1304,469 @@ public class UserController : ControllerBase
 
 ---
 
+### ✅ Giai đoạn 7: Abstract Factory Pattern (Notification System)
+
+**Mục tiêu:** Hệ thống Notification Email/SMS theo "Family" (Họ sản phẩm/Khách hàng).
+
+#### Vấn đề
+
+Không chỉ gửi Email/SMS đơn thuần:
+- **Khách VIP** (Gold/Platinum): Cần Email giao diện sang trọng (Gold template), SMS kiểu "Trợ lý cá nhân"
+- **Khách thường** (None/Bronze/Silver): Email giao diện chuẩn, SMS tự động ngắn gọn
+
+#### Giải pháp: Abstract Factory Pattern
+
+Abstract Factory tạo ra một **họ các đối tượng** (Email + SMS) liên quan mà không cần chỉ định class cụ thể.
+
+#### Bước 7.1: Abstract Products (Sản phẩm trừu tượng) ✅
+
+| File | Mô tả | Layer |
+|------|-------|-------|
+| `IEmailService.cs` | Interface gửi Email với các method: SendEmailAsync, SendOrderConfirmationAsync... | Core |
+| `ISmsService.cs` | Interface gửi SMS với các method: SendSmsAsync, SendOrderConfirmationSmsAsync... | Core |
+
+```csharp
+// Abstract Product - Email
+public interface IEmailService
+{
+    Task<bool> SendEmailAsync(string to, string subject, string body, bool isHtml = true);
+    Task<bool> SendOrderConfirmationAsync(string to, string customerName, string orderNumber, decimal totalAmount);
+    Task<bool> SendWelcomeEmailAsync(string to, string customerName);
+    string TemplateName { get; }  // "Luxury Gold Template" hoặc "Standard Template"
+}
+
+// Abstract Product - SMS
+public interface ISmsService
+{
+    Task<bool> SendSmsAsync(string phoneNumber, string message);
+    Task<bool> SendOrderConfirmationSmsAsync(string phoneNumber, string customerName, string orderNumber, decimal totalAmount);
+    string MessageStyle { get; }  // "Personal Assistant Style" hoặc "Standard Auto Style"
+}
+```
+
+#### Bước 7.2: Abstract Factory (Nhà máy trừu tượng) ✅
+
+| File | Mô tả | Layer |
+|------|-------|-------|
+| `INotificationFactory.cs` | Interface Factory tạo ra "họ" Email + SMS | Core |
+| `INotificationFactoryProvider.cs` | Provider chọn Factory phù hợp theo VIP Level | Core |
+
+```csharp
+// Abstract Factory
+public interface INotificationFactory
+{
+    IEmailService CreateEmailService();   // Tạo Email Service phù hợp
+    ISmsService CreateSmsService();       // Tạo SMS Service phù hợp
+    string FactoryName { get; }
+}
+
+// Factory Selector
+public interface INotificationFactoryProvider
+{
+    INotificationFactory GetFactory(VipLevel vipLevel);
+    INotificationFactory GetDefaultFactory();
+    INotificationFactory GetLuxuryFactory();
+}
+```
+
+#### Bước 7.3: Concrete Products (Sản phẩm cụ thể) ✅
+
+| File | Mô tả | Template Style |
+|------|-------|----------------|
+| `LuxuryEmailService.cs` | Email template vàng sang trọng | Gold gradient, VIP badge |
+| `LuxurySmsService.cs` | SMS phong cách trợ lý cá nhân | Kính gửi Quý khách... |
+| `StandardEmailService.cs` | Email template chuẩn | Pink gradient, chuyên nghiệp |
+| `StandardSmsService.cs` | SMS ngắn gọn tự động | Tiếng Việt không dấu |
+
+**Ví dụ LuxuryEmailService (Gold Template):**
+
+```html
+<!-- Email VIP với Gold Template -->
+<div class="header" style="background: linear-gradient(135deg, #D4AF37 0%, #F5E6A3 100%);">
+    <span class="vip-badge">👑 VIP MEMBER</span>
+    <h1>GlowAura Luxury</h1>
+</div>
+<div class="content">
+    <p>Kính gửi Quý khách <strong style="color: #D4AF37;">Nguyễn Văn A</strong>,</p>
+    <p>Chúng tôi vô cùng vinh hạnh được phục vụ Quý khách!</p>
+    💎 Đội ngũ chăm sóc khách hàng VIP sẽ liên hệ trong vòng 30 phút
+</div>
+```
+
+**Ví dụ StandardEmailService (Simple Template):**
+
+```html
+<!-- Email thường với Template chuẩn -->
+<div class="header" style="background: #FF6B9D;">
+    <h1>GlowAura</h1>
+</div>
+<div class="content">
+    <p>Xin chào <strong>Nguyễn Văn A</strong>,</p>
+    <p>Cảm ơn bạn đã đặt hàng tại GlowAura!</p>
+</div>
+```
+
+#### Bước 7.4: Concrete Factories (Nhà máy cụ thể) ✅
+
+| File | Mô tả | Tạo ra |
+|------|-------|--------|
+| `LuxuryNotificationFactory.cs` | Factory cho VIP | LuxuryEmailService + LuxurySmsService |
+| `StandardNotificationFactory.cs` | Factory cho khách thường | StandardEmailService + StandardSmsService |
+| `NotificationFactoryProvider.cs` | Chọn Factory theo VipLevel | Luxury/Standard Factory |
+
+```csharp
+// Concrete Factory - Luxury
+public class LuxuryNotificationFactory : INotificationFactory
+{
+    public string FactoryName => "Luxury Notification Factory (VIP)";
+    
+    public IEmailService CreateEmailService()
+        => new LuxuryEmailService(_logger);  // Gold Template
+    
+    public ISmsService CreateSmsService()
+        => new LuxurySmsService(_logger);    // Personal Assistant Style
+}
+
+// Factory Provider - Chọn Factory theo VIP Level
+public class NotificationFactoryProvider : INotificationFactoryProvider
+{
+    public INotificationFactory GetFactory(VipLevel vipLevel)
+    {
+        return vipLevel switch
+        {
+            VipLevel.Gold => _luxuryFactory,
+            VipLevel.Platinum => _luxuryFactory,
+            _ => _standardFactory
+        };
+    }
+}
+```
+
+#### Bước 7.5: Tích hợp vào Event Handlers ✅
+
+| File | Mô tả | Events Handled |
+|------|-------|----------------|
+| `VipAwareNotificationHandler.cs` | Handler sử dụng Abstract Factory | OrderCreated, UserRegistered, VipUpgraded, Promotion |
+
+**Abstract Factory Pattern - Workflow:**
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                     ABSTRACT FACTORY PATTERN                             │
+│                (Notification System by VIP Level)                        │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│   1️⃣ Event xảy ra: OrderCreatedEvent                                    │
+│                          │                                              │
+│                          ▼                                              │
+│   2️⃣ VipAwareOrderCreatedHandler                                        │
+│      - Lấy VipLevel từ event                                            │
+│      - Gọi FactoryProvider.GetFactory(vipLevel)                         │
+│                          │                                              │
+│              ┌───────────┴───────────┐                                  │
+│              ▼                       ▼                                  │
+│   ┌─────────────────────┐  ┌─────────────────────┐                      │
+│   │ Gold / Platinum     │  │ None / Bronze / Silver                     │
+│   │        ↓            │  │        ↓            │                      │
+│   │ LuxuryNotification  │  │ StandardNotification│                      │
+│   │     Factory         │  │     Factory         │                      │
+│   └─────────┬───────────┘  └─────────┬───────────┘                      │
+│             │                        │                                  │
+│   ┌─────────┴─────────┐    ┌─────────┴─────────┐                        │
+│   ▼                   ▼    ▼                   ▼                        │
+│ LuxuryEmail    LuxurySms  StandardEmail  StandardSms                    │
+│ (Gold Template) (Personal) (Simple)      (Auto)                         │
+│                                                                         │
+│   3️⃣ Gửi notification với template phù hợp                              │
+│      - VIP nhận email sang trọng + SMS cá nhân hóa                      │
+│      - Khách thường nhận email chuẩn + SMS ngắn gọn                     │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**Ví dụ sử dụng trong Handler:**
+
+```csharp
+public class VipAwareOrderCreatedHandler : IDomainEventHandler<OrderCreatedEvent>
+{
+    private readonly INotificationFactoryProvider _factoryProvider;
+
+    public async Task HandleAsync(OrderCreatedEvent domainEvent, CancellationToken ct)
+    {
+        // 1. Lấy VIP Level từ event
+        var vipLevel = domainEvent.UserVipLevel;
+
+        // 2. Abstract Factory: Chọn factory phù hợp
+        var factory = _factoryProvider.GetFactory(vipLevel);
+        // → Gold/Platinum: LuxuryNotificationFactory
+        // → None/Bronze/Silver: StandardNotificationFactory
+
+        // 3. Factory tạo Email Service (không biết Luxury hay Standard)
+        var emailService = factory.CreateEmailService();
+        
+        // 4. Gửi email (template tự động theo factory)
+        await emailService.SendOrderConfirmationAsync(
+            domainEvent.UserEmail,
+            domainEvent.UserName,
+            domainEvent.OrderNumber,
+            domainEvent.TotalAmount
+        );
+        // → VIP: Gold template với "Kính gửi Quý khách..."
+        // → Normal: Simple template với "Xin chào..."
+
+        // 5. Tương tự với SMS
+        if (!string.IsNullOrEmpty(domainEvent.UserPhone))
+        {
+            var smsService = factory.CreateSmsService();
+            await smsService.SendOrderConfirmationSmsAsync(...);
+        }
+    }
+}
+```
+
+**Lợi ích Abstract Factory Pattern:**
+
+| Lợi ích | Mô tả |
+|---------|-------|
+| **Family Products** | Email + SMS luôn đồng bộ theo cùng style (Luxury hoặc Standard) |
+| **Open/Closed** | Thêm factory mới (PremiumNotificationFactory) không sửa code cũ |
+| **Loose Coupling** | Handler không biết dùng Luxury hay Standard, chỉ biết interface |
+| **Single Responsibility** | Mỗi factory chỉ tạo 1 family sản phẩm |
+| **Consistency** | Đảm bảo VIP luôn nhận email + SMS VIP style |
+
+**Cấu trúc thư mục Abstract Factory:**
+
+```
+📂 CosmeticStore.Core/Interfaces/Notifications/
+├── 📄 IEmailService.cs           ← Abstract Product (Email)
+├── 📄 ISmsService.cs             ← Abstract Product (SMS)
+├── 📄 INotificationFactory.cs    ← Abstract Factory
+└── 📄 INotificationFactoryProvider.cs ← Factory Selector
+
+📂 CosmeticStore.Infrastructure/Services/Notifications/
+├── 📄 LuxuryEmailService.cs      ← Concrete Product (VIP Email)
+├── 📄 LuxurySmsService.cs        ← Concrete Product (VIP SMS)
+├── 📄 StandardEmailService.cs    ← Concrete Product (Normal Email)
+├── 📄 StandardSmsService.cs      ← Concrete Product (Normal SMS)
+├── 📄 LuxuryNotificationFactory.cs    ← Concrete Factory (VIP)
+├── 📄 StandardNotificationFactory.cs  ← Concrete Factory (Standard)
+└── 📄 NotificationFactoryProvider.cs  ← Factory Selector Logic
+
+📂 CosmeticStore.Infrastructure/Handlers/Notifications/
+└── 📄 VipAwareNotificationHandler.cs  ← Handlers dùng Abstract Factory
+```
+
+---
+
+### ✅ Giai đoạn 8: Builder Pattern (Order Construction)
+
+**Mục tiêu:** Xây dựng đối tượng Order phức tạp từng bước.
+
+#### Vấn đề
+
+Class Order ngày càng phình to. Để tạo một Order hoàn chỉnh, cần:
+- Set User (VIP Level, SkinType)
+- Add danh sách Items (với giá đã tính qua Strategy + Decorator)
+- Set địa chỉ giao hàng
+- Chọn phương thức thanh toán
+- Áp dụng Voucher (optional)
+- Thêm ghi chú (optional)
+- Gói quà (optional)
+- Giao hàng nhanh (optional)
+
+```csharp
+// ❌ Constructor dài và dễ sai sót
+var order = new Order(
+    userId, address, phone, name, paymentMethod, 
+    notes, couponCode, giftMessage, isExpress, shippingFee...
+);
+```
+
+#### Giải pháp: Builder Pattern với Fluent Interface
+
+```csharp
+// ✅ Builder Pattern - Xây dựng từng bước, dễ đọc
+var order = _orderBuilder
+    .WithUser(currentUser)                                  // Step 1
+    .WithItems(cartItems)                                   // Step 2 (tính giá)
+    .WithShippingAddress(address, phone, name)              // Step 3
+    .WithPaymentMethod(PaymentMethod.Momo)                  // Step 4
+    .WithVoucher("SALE20")                                  // Optional
+    .WithNotes("Giao giờ hành chính")                       // Optional
+    .WithGiftWrap("Chúc mừng sinh nhật!", 25000)            // Optional
+    .WithExpressDelivery()                                  // Optional
+    .Build();                                               // Validate & Build
+```
+
+#### Bước 8.1: IOrderBuilder Interface (Core) ✅
+
+| File | Mô tả | Layer |
+|------|-------|-------|
+| `IOrderBuilder.cs` | Interface với Fluent Interface | Core |
+| `CartItem` | DTO cho item trong giỏ hàng | Core |
+| `OrderBuildResult` | Kết quả build chi tiết | Core |
+| `DiscountDetail` | Chi tiết một khoản giảm giá | Core |
+
+**Interface IOrderBuilder:**
+
+```csharp
+public interface IOrderBuilder
+{
+    // Required steps
+    IOrderBuilder WithUser(User user);
+    IOrderBuilder WithUserId(int userId);
+    IOrderBuilder WithItems(IEnumerable<CartItem> cartItems);
+    IOrderBuilder WithShippingAddress(string address, string phone, string receiverName);
+    IOrderBuilder WithPaymentMethod(PaymentMethod method);
+    
+    // Optional steps
+    IOrderBuilder WithVoucher(string? voucherCode);
+    IOrderBuilder WithNotes(string? notes);
+    IOrderBuilder WithGiftWrap(string? giftMessage, decimal giftWrapFee = 0);
+    IOrderBuilder WithShippingFee(decimal shippingFee);
+    IOrderBuilder WithExpressDelivery(bool isExpress = true);
+    
+    // Build
+    Order Build();
+    bool CanBuild();
+    IReadOnlyList<string> GetValidationErrors();
+    IOrderBuilder Reset();
+}
+```
+
+#### Bước 8.2: OrderBuilder Implementation (Infrastructure) ✅
+
+| File | Mô tả | Kết hợp Pattern |
+|------|-------|-----------------|
+| `OrderBuilder.cs` | Concrete Builder implementation | Builder + Strategy + Decorator |
+
+**Kết hợp các Pattern trong OrderBuilder:**
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                            OrderBuilder                                  │
+│           (Builder Pattern + Strategy + Decorator + Encapsulation)       │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  WithUser(user)                                                          │
+│  ├── Lưu User object để tính VIP discount                                │
+│  └── Xác định VIP Level cho miễn phí ship                                │
+│                                                                          │
+│  WithItems(cartItems)                                                    │
+│  ├── Load Product từ Repository                                          │
+│  ├── Validate stock, expiry                                              │
+│  ├── Tính giá qua PricingService (Strategy + Decorator)                  │
+│  │   ├── VipPricingStrategy (5-20%)                                      │
+│  │   ├── SkinTypePricingStrategy (5%)                                    │
+│  │   ├── ExpiryDiscountDecorator (15-40%)                                │
+│  │   ├── FlashSaleDecorator                                              │
+│  │   └── CouponDecorator                                                 │
+│  └── Tạo OrderItem với giá đã tính                                       │
+│                                                                          │
+│  WithShippingAddress(address, phone, name)                               │
+│  └── Validate và lưu địa chỉ giao hàng                                   │
+│                                                                          │
+│  WithPaymentMethod(method)                                               │
+│  └── Lưu phương thức thanh toán                                          │
+│                                                                          │
+│  WithVoucher(code) [Optional]                                            │
+│  └── Áp dụng vào PricingService                                          │
+│                                                                          │
+│  Build()                                                                 │
+│  ├── Validate required fields                                            │
+│  ├── Validate cart items                                                 │
+│  ├── Tính phí ship (miễn phí >= 500k hoặc VIP Gold+)                     │
+│  ├── Tạo Order entity                                                    │
+│  ├── Add OrderItems                                                      │
+│  ├── Apply discount                                                      │
+│  └── Return Order                                                        │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Bước 8.3: Tích hợp vào CommandHandler ✅
+
+| File | Mô tả | Cách dùng |
+|------|-------|-----------|
+| `CreateOrderWithBuilderHandler.cs` | Handler mới dùng Builder | Thay thế code dài dòng |
+
+**So sánh trước và sau Builder:**
+
+```csharp
+// ❌ TRƯỚC: CreateOrderCommandHandler (80+ dòng logic)
+public async Task<CommandResult<CreateOrderResult>> HandleAsync(CreateOrderCommand command)
+{
+    // 1. Validate User (5 dòng)
+    // 2. Validate Items (10 dòng)
+    // 3. Validate Products & Stock (30 dòng loop)
+    // 4. Tính giá (10 dòng)
+    // 5. Tạo Order (5 dòng)
+    // 6. Thêm items (5 dòng loop)
+    // 7. Tính ship (3 dòng)
+    // 8. Lưu DB (5 dòng)
+    // 9. Log (5 dòng)
+    // ...
+}
+
+// ✅ SAU: CreateOrderWithBuilderHandler (~30 dòng)
+public async Task<CommandResult<CreateOrderResult>> HandleAsync(CreateOrderCommand command)
+{
+    var user = await _userRepository.GetByIdAsync(command.UserId);
+    var cartItems = await LoadCartItemsAsync(command.Items);
+    
+    // Builder Pattern: Xây dựng từng bước
+    var order = _orderBuilder
+        .Reset()
+        .WithUser(user)
+        .WithItems(cartItems)
+        .WithShippingAddress(command.ShippingAddress, command.ShippingPhone, command.ReceiverName)
+        .WithPaymentMethod(command.PaymentMethod)
+        .WithVoucher(command.CouponCode)
+        .WithNotes(command.Notes)
+        .Build();
+    
+    // Lưu và return
+    await _orderRepository.AddAsync(order);
+    return CommandResult<CreateOrderResult>.Success(...);
+}
+```
+
+**Dependency Injection:**
+
+```csharp
+// Program.cs
+builder.Services.AddScoped<IOrderBuilder, OrderBuilder>();
+builder.Services.AddScoped<ICommandHandler<CreateOrderCommand, CreateOrderResult>, CreateOrderWithBuilderHandler>();
+```
+
+**Lợi ích Builder Pattern:**
+
+| Lợi ích | Mô tả |
+|---------|-------|
+| **Fluent Interface** | Code dễ đọc như văn xuôi |
+| **Step-by-step** | Xây dựng từng bước, dễ hiểu |
+| **Validation** | Validate tự động khi Build() |
+| **Flexible** | Optional steps không cần thiết |
+| **Reusable** | Builder có thể Reset() và tái sử dụng |
+| **Testable** | Dễ mock từng step |
+| **SRP** | Logic xây dựng tách khỏi Handler |
+
+**Cấu trúc thư mục Builder Pattern:**
+
+```
+📂 CosmeticStore.Core/Builders/
+└── 📄 IOrderBuilder.cs           ← Interface Builder + DTOs
+
+📂 CosmeticStore.Infrastructure/Builders/
+└── 📄 OrderBuilder.cs            ← Concrete Builder Implementation
+
+📂 CosmeticStore.Infrastructure/Handlers/
+├── 📄 CreateOrderCommandHandler.cs       ← Handler cũ (không dùng Builder)
+└── 📄 CreateOrderWithBuilderHandler.cs   ← Handler mới (dùng Builder)
+```
+
+---
+
 ### ⏳ Giai đoạn tiếp theo (Đang phát triển)
 
 | Giai đoạn | Mô tả | Pattern |
@@ -1337,6 +1819,7 @@ public class UserController : ControllerBase
 | `SkinQuiz/SkinQuizModels.cs` | DTOs + SkinTypeInfo chi tiết (5 loại da) | **AI Quiz** |
 | `SkinQuiz/SkinQuizQuestions.cs` | 10 câu hỏi với điểm số | **AI Quiz** |
 | `Interfaces/ISkinQuizService.cs` | Interface AI Skin Quiz | **Strategy Context** |
+| `Builders/IOrderBuilder.cs` | Interface Builder + DTOs (CartItem, DiscountDetail, OrderBuildResult) | **Builder** |
 
 ### 📂 CosmeticStore.Infrastructure (Tầng Hạ tầng)
 
@@ -1377,6 +1860,8 @@ public class UserController : ControllerBase
 | `Handlers/Notifications/AdminAlertHandler.cs` | Handler thông báo Admin | **Observer** |
 | `Services/SkinQuizService.cs` | AI phân tích loại da (Strategy Context) | **AI Quiz** |
 | `Services/AuthService.cs` | JWT Token + Password Hash (PBKDF2) | **Authentication** |
+| `Builders/OrderBuilder.cs` | Concrete Builder cho Order (Fluent Interface) | **Builder** |
+| `Handlers/CreateOrderWithBuilderHandler.cs` | Handler dùng Builder Pattern | **Builder + Command** |
 
 ### 📂 CosmeticStore.API (Tầng Presentation)
 
