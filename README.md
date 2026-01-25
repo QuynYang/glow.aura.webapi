@@ -107,6 +107,8 @@ Dự án được tổ chức theo mô hình **Clean Architecture** (Kiến trú
  ┃ ┃   ┗ 📄 PayOrderCommand.cs        # Thanh toán
  ┃ ┣ 📂 Builders/                     # Builder Pattern
  ┃ ┃ ┗ 📄 IOrderBuilder.cs            # Interface Builder + DTOs (CartItem, OrderBuildResult)
+ ┃ ┣ 📂 SkinAnalysis/                 # Adapter Pattern - Skin Analysis
+ ┃ ┃ ┗ 📄 SkinAnalysisResult.cs       # Value Object (Brightness, AcneCount, Recommendations...)
  ┃ ┣ 📂 Interfaces/
  ┃ ┃ ┣ 📄 IGenericRepository.cs       # Interface CRUD cơ bản
  ┃ ┃ ┣ 📄 IProductRepository.cs       # Interface đặc thù cho Product
@@ -1767,10 +1769,116 @@ builder.Services.AddScoped<ICommandHandler<CreateOrderCommand, CreateOrderResult
 
 ---
 
+### 🔄 Giai đoạn 9: Skin Analysis Camera (Adapter Pattern) - Đang phát triển
+
+**Mục tiêu:** Xây dựng tính năng theo dõi tình trạng da mặt theo thời gian bằng camera.
+
+#### Chức năng chính
+
+| Chức năng | Mô tả |
+|-----------|-------|
+| Chụp ảnh khuôn mặt | Hướng dẫn căn chỉnh, kiểm tra có khuôn mặt |
+| Phát hiện khuôn mặt | Cắt vùng khuôn mặt từ ảnh |
+| Phân tích da | Độ sáng, đều màu, mụn, đốm nâu, lỗ chân lông |
+| Lưu lịch sử | Lưu ảnh và kết quả theo ngày/giờ |
+| So sánh xu hướng | Nhận biết cải thiện hay xấu đi |
+| Đưa lời khuyên | Gợi ý chăm sóc da phù hợp |
+
+#### Bước 9.1: Core & Abstraction (Adapter Pattern) ✅
+
+| File | Mô tả | Layer |
+|------|-------|-------|
+| `SkinAnalysis/SkinAnalysisResult.cs` | Value Object chứa kết quả phân tích (Brightness, AcneCount...) | Core |
+| `Interfaces/ISkinAnalysisService.cs` | Interface Adapter cho việc phân tích da | Core |
+| `Entities/SkinAnalysisHistory.cs` | Entity lưu lịch sử phân tích | Core |
+| `Interfaces/ISkinAnalysisHistoryRepository.cs` | Repository Interface cho lịch sử | Core |
+
+**Adapter Pattern - Abstraction:**
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                       ISkinAnalysisService                               │
+│                    (Interface trong Core)                                │
+├─────────────────────────────────────────────────────────────────────────┤
+│  AnalyzeAsync(Stream image) → SkinAnalysisResult                         │
+│  ContainsFaceAsync(Stream image) → bool                                  │
+│  DetectAndCropFaceAsync(Stream image) → FaceDetectionResult             │
+│  ValidateImageQualityAsync(Stream image) → ImageQualityResult           │
+│  GetFaceAlignmentGuidanceAsync(Stream image) → FaceAlignmentGuidance    │
+│  CompareSkinAnalysis(current, previous) → SkinTrendAnalysis             │
+│  AnalyzeTrends(historicalResults) → SkinTrendReport                     │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    │ Implement
+                   ┌────────────────┼────────────────┐
+                   ▼                ▼                ▼
+        ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+        │ OpenCvSharp      │ │ Python AI Server │ │ Azure Computer   │
+        │ SkinAnalysis     │ │ SkinAnalysis     │ │ Vision           │
+        │ Service          │ │ Service          │ │ Service          │
+        └──────────────────┘ └──────────────────┘ └──────────────────┘
+         (Local Processing)  (Remote AI Model)   (Cloud API)
+```
+
+**SkinAnalysisResult - Value Object:**
+
+```csharp
+public class SkinAnalysisResult
+{
+    // Phát hiện khuôn mặt
+    public bool FaceDetected { get; }
+    public decimal FaceConfidence { get; }
+    
+    // Chỉ số da (0-100)
+    public decimal Brightness { get; }      // Độ sáng
+    public decimal Evenness { get; }        // Đều màu
+    public decimal Smoothness { get; }      // Độ mịn
+    public decimal Hydration { get; }       // Độ ẩm
+    public decimal Oiliness { get; }        // Dầu nhờn
+    
+    // Vấn đề da
+    public int AcneCount { get; }           // Số mụn
+    public int DarkSpotCount { get; }       // Số đốm nâu
+    public decimal WrinkleLevel { get; }    // Nếp nhăn
+    public decimal PoreSize { get; }        // Lỗ chân lông
+    public decimal Redness { get; }         // Đỏ da
+    
+    // Đánh giá tổng quan
+    public decimal OverallScore { get; }    // Điểm sức khỏe da (0-100)
+    public SkinCondition Condition { get; } // Excellent/Good/Normal/NeedsAttention/Poor
+    public DetectedSkinType DetectedSkinType { get; } // Oily/Dry/Combination/Normal/Sensitive
+    
+    // Lời khuyên
+    public IReadOnlyList<SkinConcern> DetectedConcerns { get; }
+    public IReadOnlyList<SkinAdvice> Recommendations { get; }
+}
+```
+
+**Lợi ích Adapter Pattern:**
+
+| Lợi ích | Mô tả |
+|---------|-------|
+| **Flexibility** | Dễ dàng thay đổi từ OpenCvSharp sang Python AI hoặc Cloud Vision |
+| **Abstraction** | Core không biết implementation cụ thể |
+| **Testable** | Có thể mock interface để test |
+| **Open/Closed** | Thêm implementation mới không sửa code cũ |
+
+#### Các bước tiếp theo (Pending)
+
+| Bước | Mô tả | Pattern |
+|------|-------|---------|
+| **9.2** | Implement OpenCvSharpSkinAnalysisService | Adapter |
+| **9.3** | Tạo SkinAnalysisController (API endpoints) | - |
+| **9.4** | Tạo SkinAnalysisHistoryRepository | Repository |
+| **9.5** | Frontend Camera Integration | - |
+
+---
+
 ### ⏳ Giai đoạn tiếp theo (Đang phát triển)
 
 | Giai đoạn | Mô tả | Pattern |
 |-----------|-------|---------|
+| **Bước 9.2** | Implement SkinAnalysisService với OpenCvSharp | Adapter |
 | **Bước 5.2** | Virtual Try-on | Module Integration |
 | **Bước 5.3** | Expiry Automation | Background Service |
 | **Bước 4.3** | Review System | Repository + Observer |
@@ -1820,6 +1928,10 @@ builder.Services.AddScoped<ICommandHandler<CreateOrderCommand, CreateOrderResult
 | `SkinQuiz/SkinQuizQuestions.cs` | 10 câu hỏi với điểm số | **AI Quiz** |
 | `Interfaces/ISkinQuizService.cs` | Interface AI Skin Quiz | **Strategy Context** |
 | `Builders/IOrderBuilder.cs` | Interface Builder + DTOs (CartItem, DiscountDetail, OrderBuildResult) | **Builder** |
+| `SkinAnalysis/SkinAnalysisResult.cs` | Value Object kết quả phân tích da (Brightness, AcneCount...) | **Adapter** |
+| `Entities/SkinAnalysisHistory.cs` | Entity lưu lịch sử phân tích da | **Encapsulation** |
+| `Interfaces/ISkinAnalysisService.cs` | Interface Adapter cho phân tích da | **Adapter** |
+| `Interfaces/ISkinAnalysisHistoryRepository.cs` | Repository Interface cho lịch sử phân tích | **Repository** |
 
 ### 📂 CosmeticStore.Infrastructure (Tầng Hạ tầng)
 
