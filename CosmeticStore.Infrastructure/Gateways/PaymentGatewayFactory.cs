@@ -2,7 +2,7 @@ using CosmeticStore.Core.Interfaces;
 
 namespace CosmeticStore.Infrastructure.Gateways;
 
-/// <summary>
+
 /// Payment Gateway Factory - Factory Pattern
 /// 
 /// FACTORY PATTERN:
@@ -21,9 +21,9 @@ namespace CosmeticStore.Infrastructure.Gateways;
 /// </summary>
 public class PaymentGatewayFactory
 {
-    /// <summary>
+    
     /// Danh sách Gateway được hỗ trợ (cache để tránh tạo mới)
-    /// </summary>
+   
     private static readonly Dictionary<string, Func<IPaymentGateway>> _gateways = new(StringComparer.OrdinalIgnoreCase)
     {
         { "MOMO", () => new MomoGateway() },
@@ -33,7 +33,7 @@ public class PaymentGatewayFactory
         { "BANK", () => new VNPayGateway() } // Bank transfer qua VNPay
     };
 
-    /// <summary>
+    
     /// Tạo Payment Gateway dựa trên mã thanh toán
     /// 
     /// FACTORY METHOD:
@@ -41,7 +41,7 @@ public class PaymentGatewayFactory
     /// Input: "ZALOPAY" → Output: new ZaloPayGateway()
     /// Input: "VNPAY" → Output: new VNPayGateway()
     /// Input: "COD" → Output: new CODGateway()
-    /// </summary>
+   
     /// <param name="gatewayCode">Mã cổng thanh toán (MOMO, ZALOPAY, VNPAY, COD)</param>
     /// <returns>IPaymentGateway instance</returns>
     /// <exception cref="ArgumentException">Khi mã không được hỗ trợ</exception>
@@ -63,26 +63,26 @@ public class PaymentGatewayFactory
             nameof(gatewayCode));
     }
 
-    /// <summary>
+    
     /// Kiểm tra xem gateway có được hỗ trợ không
-    /// </summary>
+   
     public bool IsSupported(string gatewayCode)
     {
         return !string.IsNullOrWhiteSpace(gatewayCode) && 
                _gateways.ContainsKey(gatewayCode.ToUpper());
     }
 
-    /// <summary>
+    
     /// Lấy danh sách các cổng thanh toán được hỗ trợ
-    /// </summary>
+   
     public IEnumerable<string> GetSupportedGateways()
     {
         return _gateways.Keys;
     }
 
-    /// <summary>
+    
     /// Lấy thông tin chi tiết các cổng thanh toán
-    /// </summary>
+   
     public IEnumerable<PaymentGatewayInfo> GetGatewayInfos()
     {
         return new[]
@@ -95,16 +95,16 @@ public class PaymentGatewayFactory
         };
     }
 
-    /// <summary>
+    
     /// Tạo Gateway mặc định (COD - phổ biến nhất)
-    /// </summary>
+   
     public IPaymentGateway CreateDefaultGateway()
     {
         return CreateGateway("COD");
     }
 }
 
-/// <summary>
+
 /// Thông tin cổng thanh toán
 /// </summary>
 public record PaymentGatewayInfo(

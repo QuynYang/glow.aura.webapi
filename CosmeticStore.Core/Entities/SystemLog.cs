@@ -2,7 +2,7 @@ using CosmeticStore.Core.Interfaces;
 
 namespace CosmeticStore.Core.Entities;
 
-/// <summary>
+
 /// Entity SystemLog - Lưu trữ logs trong Database
 /// 
 /// SINGLETON PATTERN:
@@ -14,94 +14,94 @@ namespace CosmeticStore.Core.Entities;
 /// </summary>
 public class SystemLog : BaseEntity
 {
-    /// <summary>
+    
     /// Thời điểm ghi log
-    /// </summary>
+   
     public DateTime Timestamp { get; private set; }
 
-    /// <summary>
+    
     /// Mức độ log (Debug, Info, Warning, Error, Critical)
-    /// </summary>
+   
     public LogLevel Level { get; private set; }
 
-    /// <summary>
+    
     /// Danh mục log (Order, Payment, Product, Review, API, System)
-    /// </summary>
+   
     public string Category { get; private set; } = string.Empty;
 
-    /// <summary>
+    
     /// Nội dung log
-    /// </summary>
+   
     public string Message { get; private set; } = string.Empty;
 
-    /// <summary>
+    
     /// Dữ liệu bổ sung (JSON)
-    /// </summary>
+   
     public string? Data { get; private set; }
 
-    /// <summary>
+    
     /// Thông tin Exception (nếu có)
-    /// </summary>
+   
     public string? ExceptionDetails { get; private set; }
 
-    /// <summary>
+    
     /// Stack trace (nếu có lỗi)
-    /// </summary>
+   
     public string? StackTrace { get; private set; }
 
-    /// <summary>
+    
     /// ID người dùng liên quan
-    /// </summary>
+   
     public int? UserId { get; private set; }
 
-    /// <summary>
+    
     /// Địa chỉ IP
-    /// </summary>
+   
     public string? IpAddress { get; private set; }
 
-    /// <summary>
+    
     /// Đường dẫn API request
-    /// </summary>
+   
     public string? RequestPath { get; private set; }
 
-    /// <summary>
+    
     /// HTTP Method (GET, POST, PUT, DELETE)
-    /// </summary>
+   
     public string? HttpMethod { get; private set; }
 
-    /// <summary>
+    
     /// HTTP Status Code
-    /// </summary>
+   
     public int? StatusCode { get; private set; }
 
-    /// <summary>
+    
     /// Thời gian xử lý (ms)
-    /// </summary>
+   
     public long? ResponseTimeMs { get; private set; }
 
-    /// <summary>
+    
     /// ID đối tượng liên quan (OrderId, ProductId, ReviewId...)
-    /// </summary>
+   
     public int? RelatedEntityId { get; private set; }
 
-    /// <summary>
+    
     /// Loại đối tượng liên quan
-    /// </summary>
+   
     public string? RelatedEntityType { get; private set; }
 
-    /// <summary>
+    
     /// Tên máy chủ/server
-    /// </summary>
+   
     public string? MachineName { get; private set; }
 
-    /// <summary>
+    
     /// Constructor mặc định cho EF Core
-    /// </summary>
+   
     protected SystemLog() { }
 
-    /// <summary>
+    
     /// Constructor chính - ENCAPSULATION
-    /// </summary>
+   
     public SystemLog(
         LogLevel level,
         string category,
@@ -129,9 +129,9 @@ public class SystemLog : BaseEntity
 
     #region Factory Methods
 
-    /// <summary>
+    
     /// Tạo log cho hoạt động đơn hàng
-    /// </summary>
+   
     public static SystemLog ForOrder(
         int orderId, 
         OrderActivityType activityType, 
@@ -153,9 +153,9 @@ public class SystemLog : BaseEntity
         };
     }
 
-    /// <summary>
+    
     /// Tạo log cho hoạt động thanh toán
-    /// </summary>
+   
     public static SystemLog ForPayment(
         int orderId,
         string paymentMethod,
@@ -191,9 +191,9 @@ public class SystemLog : BaseEntity
         };
     }
 
-    /// <summary>
+    
     /// Tạo log cho hoạt động sản phẩm
-    /// </summary>
+   
     public static SystemLog ForProduct(
         int productId,
         ProductActivityType activityType,
@@ -208,9 +208,9 @@ public class SystemLog : BaseEntity
         };
     }
 
-    /// <summary>
+    
     /// Tạo log cho hoạt động review
-    /// </summary>
+   
     public static SystemLog ForReview(
         int reviewId,
         int productId,
@@ -227,9 +227,9 @@ public class SystemLog : BaseEntity
         };
     }
 
-    /// <summary>
+    
     /// Tạo log cho API request
-    /// </summary>
+   
     public static SystemLog ForApiRequest(
         string endpoint,
         string method,
@@ -256,9 +256,9 @@ public class SystemLog : BaseEntity
 
     #region Update Methods
 
-    /// <summary>
+    
     /// Thêm thông tin request
-    /// </summary>
+   
     public void SetRequestInfo(string path, string method, int statusCode, long responseTimeMs)
     {
         RequestPath = path;
