@@ -12,14 +12,9 @@ namespace CosmeticStore.API.Controllers;
 /// 
 /// Chức năng 9️⃣ - AI Skin Quiz:
 /// - Trả lời 10 câu hỏi trắc nghiệm
-/// - Hệ thống phân tích và xác định loại da
+/// - Hệ thống phân tích và xác định loại da bằng Google Gemini AI
 /// - Lưu kết quả vào User profile
 /// - User tự động hưởng SkinTypePricingStrategy (5% discount)
-/// 
-/// STRATEGY PATTERN Integration:
-/// - Sau quiz → User.SkinType được cập nhật
-/// - PricingService tự động áp dụng SkinTypePricingStrategy
-/// - Sản phẩm phù hợp loại da → Giảm giá 5%
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -42,16 +37,6 @@ public class SkinQuizController : ControllerBase
     /// <summary>
     /// Lấy danh sách câu hỏi trắc nghiệm
     /// </summary>
-    /// <returns>10 câu hỏi với các lựa chọn</returns>
-    /// <remarks>
-    /// GET /api/skinquiz/questions
-    /// 
-    /// Mỗi câu hỏi có:
-    /// - Id: Số thứ tự câu hỏi (1-10)
-    /// - Question: Nội dung câu hỏi
-    /// - Category: Phân loại (Oiliness, Pores, Acne, Sensitivity...)
-    /// - Options: Danh sách lựa chọn với OptionId và Text
-    /// </remarks>
     [HttpGet("questions")]
     public ActionResult<List<SkinQuizQuestionResponse>> GetQuestions()
     {
@@ -73,34 +58,8 @@ public class SkinQuizController : ControllerBase
     }
 
     /// <summary>
-    /// Gửi câu trả lời và nhận kết quả phân tích loại da
+    /// Gửi câu trả lời và nhận kết quả phân tích loại da từ AI
     /// </summary>
-    /// <param name="request">Danh sách câu trả lời</param>
-    /// <returns>Kết quả phân tích loại da chi tiết</returns>
-    /// <remarks>
-    /// POST /api/skinquiz/analyze
-    /// 
-    /// Request body:
-    /// {
-    ///   "userId": 1,  // Optional - nếu đã đăng nhập
-    ///   "answers": [
-    ///     { "questionId": 1, "selectedOptionId": "1a" },
-    ///     { "questionId": 2, "selectedOptionId": "2c" },
-    ///     ...
-    ///   ]
-    /// }
-    /// 
-    /// Response: Kết quả phân tích bao gồm:
-    /// - DeterminedSkinType: Loại da được xác định
-    /// - SkinTypeName: Tên tiếng Việt
-    /// - Description: Mô tả chi tiết
-    /// - Characteristics: Đặc điểm loại da
-    /// - RecommendedIngredients: Thành phần nên dùng
-    /// - IngredientsToAvoid: Thành phần nên tránh
-    /// - SkincareTips: Lời khuyên chăm sóc da
-    /// - ConfidencePercent: Độ tin cậy
-    /// - MatchingProductCount: Số sản phẩm phù hợp
-    /// </remarks>
     [HttpPost("analyze")]
     public async Task<ActionResult<SkinQuizResultResponse>> AnalyzeAndSave([FromBody] SkinQuizAnswerRequest request)
     {
@@ -111,7 +70,7 @@ public class SkinQuizController : ControllerBase
 
         if (request.Answers.Count < 5)
         {
-            return BadRequest(new { message = "Vui lòng trả lời ít nhất 5 câu hỏi để có kết quả chính xác" });
+            return BadRequest(new { message = "Vui lòng trả lời ít nhất 5 câu hỏi để AI có kết quả chính xác" });
         }
 
         _logger.LogInfo("Skin quiz submitted", new 
@@ -120,10 +79,10 @@ public class SkinQuizController : ControllerBase
             AnswerCount = request.Answers.Count 
         });
 
-        // Phân tích loại da
+        // Gọi sang GeminiSkinQuizService để phân tích
         var result = await _skinQuizService.AnalyzeSkinTypeAsync(request.Answers);
 
-        // Nếu có userId, lưu kết quả
+        // Lưu kết quả nếu user đã đăng nhập
         if (request.UserId.HasValue)
         {
             var saved = await _skinQuizService.SaveUserSkinTypeAsync(request.UserId.Value, result.DeterminedSkinType);
@@ -133,12 +92,13 @@ public class SkinQuizController : ControllerBase
             }
         }
 
-        // Map to response
+        // Map sang DTO trả về Frontend
         var response = new SkinQuizResultResponse
         {
             SkinType = result.DeterminedSkinType.ToString(),
             SkinTypeName = result.SkinTypeName,
-            Description = result.Description,
+            Description = result.Description, // Đoạn văn AI Summary
+            AiSummary = result.Description,   // Thêm field rõ ràng cho Frontend dễ dùng
             Characteristics = result.Characteristics,
             RecommendedIngredients = result.RecommendedIngredients,
             IngredientsToAvoid = result.IngredientsToAvoid,
@@ -147,7 +107,14 @@ public class SkinQuizController : ControllerBase
             MatchingProductCount = result.MatchingProductCount,
             HasSkinTypeDiscount = result.HasSkinTypeDiscount,
             SkinTypeDiscountPercent = result.SkinTypeDiscountPercent,
-            DetailedScores = result.DetailedScores.ToDictionary(s => s.Key.ToString(), s => s.Value)
+            DetailedScores = result.DetailedScores.ToDictionary(s => s.Key.ToString(), s => s.Value),
+            
+            // Giả lập điểm số để render UI đẹp (Bạn có thể map dữ liệu thật từ AI vào đây sau này)
+            HydrationScore = 85,
+            PigmentationScore = 30,
+            OilinessScore = 60,
+            SensitivityScore = 45,
+            ElasticityScore = 70
         };
 
         return Ok(response);
@@ -156,8 +123,6 @@ public class SkinQuizController : ControllerBase
     /// <summary>
     /// Lấy thông tin chi tiết về một loại da
     /// </summary>
-    /// <param name="skinType">Loại da (Oily, Dry, Sensitive, Normal, Combination)</param>
-    /// <returns>Thông tin chi tiết</returns>
     [HttpGet("skin-types/{skinType}")]
     public ActionResult<SkinTypeDetailsResponse> GetSkinTypeDetails(string skinType)
     {
@@ -190,7 +155,7 @@ public class SkinQuizController : ControllerBase
         
         foreach (SkinType type in Enum.GetValues<SkinType>())
         {
-            if (type == SkinType.All) continue; // Bỏ qua "All" vì không phải loại da cụ thể
+            if (type == SkinType.All) continue;
 
             var details = _skinQuizService.GetSkinTypeDetails(type);
             skinTypes.Add(new SkinTypeSummary
@@ -209,8 +174,6 @@ public class SkinQuizController : ControllerBase
     /// <summary>
     /// Lấy sản phẩm gợi ý theo loại da
     /// </summary>
-    /// <param name="skinType">Loại da</param>
-    /// <param name="take">Số sản phẩm lấy (mặc định 10)</param>
     [HttpGet("recommendations/{skinType}")]
     public async Task<ActionResult<ProductRecommendationsResponse>> GetRecommendations(string skinType, [FromQuery] int take = 10)
     {
@@ -228,7 +191,7 @@ public class SkinQuizController : ControllerBase
             Price = p.Price,
             ImageUrl = p.ImageUrl,
             HasDiscount = true,
-            DiscountPercent = 5, // SkinType discount
+            DiscountPercent = 5,
             DiscountedPrice = p.Price * 0.95m
         }).ToList();
 
@@ -254,82 +217,90 @@ public class SkinQuizController : ControllerBase
             HasCompletedQuiz = hasCompleted
         });
     }
+
+    #region Response DTOs
+
+    public class SkinQuizQuestionResponse
+    {
+        public int Id { get; set; }
+        public string Question { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public List<OptionResponse> Options { get; set; } = new();
+    }
+
+    public class OptionResponse
+    {
+        public string OptionId { get; set; } = string.Empty;
+        public string Text { get; set; } = string.Empty;
+    }
+
+    public class SkinQuizResultResponse
+    {
+        public string SkinType { get; set; } = string.Empty;
+        public string SkinTypeName { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        
+        // CÁC TRƯỜNG MỚI ĐỂ RENDER UI BIỂU ĐỒ (0-100)
+        public string AiSummary { get; set; } = string.Empty;
+        public int HydrationScore { get; set; }
+        public int PigmentationScore { get; set; }
+        public int OilinessScore { get; set; }
+        public int SensitivityScore { get; set; }
+        public int ElasticityScore { get; set; }
+
+        public List<string> Characteristics { get; set; } = new();
+        public List<string> RecommendedIngredients { get; set; } = new();
+        public List<string> IngredientsToAvoid { get; set; } = new();
+        public List<string> SkincareTips { get; set; } = new();
+        public int ConfidencePercent { get; set; }
+        public int MatchingProductCount { get; set; }
+        public bool HasSkinTypeDiscount { get; set; }
+        public decimal SkinTypeDiscountPercent { get; set; }
+        public Dictionary<string, int> DetailedScores { get; set; } = new();
+    }
+
+    public class SkinTypeDetailsResponse
+    {
+        public string SkinType { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public List<string> Characteristics { get; set; } = new();
+        public List<string> RecommendedIngredients { get; set; } = new();
+        public List<string> IngredientsToAvoid { get; set; } = new();
+        public List<string> SkincareTips { get; set; } = new();
+    }
+
+    public class SkinTypeSummary
+    {
+        public string Code { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string ShortDescription { get; set; } = string.Empty;
+    }
+
+    public class ProductRecommendationsResponse
+    {
+        public string SkinType { get; set; } = string.Empty;
+        public int TotalProducts { get; set; }
+        public List<RecommendedProduct> Products { get; set; } = new();
+    }
+
+    public class RecommendedProduct
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Brand { get; set; }
+        public decimal Price { get; set; }
+        public string? ImageUrl { get; set; }
+        public bool HasDiscount { get; set; }
+        public decimal DiscountPercent { get; set; }
+        public decimal DiscountedPrice { get; set; }
+    }
+
+    public class QuizStatusResponse
+    {
+        public int UserId { get; set; }
+        public bool HasCompletedQuiz { get; set; }
+    }
+
+    #endregion
 }
-
-#region Response DTOs
-
-public class SkinQuizQuestionResponse
-{
-    public int Id { get; set; }
-    public string Question { get; set; } = string.Empty;
-    public string Category { get; set; } = string.Empty;
-    public List<OptionResponse> Options { get; set; } = new();
-}
-
-public class OptionResponse
-{
-    public string OptionId { get; set; } = string.Empty;
-    public string Text { get; set; } = string.Empty;
-}
-
-public class SkinQuizResultResponse
-{
-    public string SkinType { get; set; } = string.Empty;
-    public string SkinTypeName { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    public List<string> Characteristics { get; set; } = new();
-    public List<string> RecommendedIngredients { get; set; } = new();
-    public List<string> IngredientsToAvoid { get; set; } = new();
-    public List<string> SkincareTips { get; set; } = new();
-    public int ConfidencePercent { get; set; }
-    public int MatchingProductCount { get; set; }
-    public bool HasSkinTypeDiscount { get; set; }
-    public decimal SkinTypeDiscountPercent { get; set; }
-    public Dictionary<string, int> DetailedScores { get; set; } = new();
-}
-
-public class SkinTypeDetailsResponse
-{
-    public string SkinType { get; set; } = string.Empty;
-    public string Name { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    public List<string> Characteristics { get; set; } = new();
-    public List<string> RecommendedIngredients { get; set; } = new();
-    public List<string> IngredientsToAvoid { get; set; } = new();
-    public List<string> SkincareTips { get; set; } = new();
-}
-
-public class SkinTypeSummary
-{
-    public string Code { get; set; } = string.Empty;
-    public string Name { get; set; } = string.Empty;
-    public string ShortDescription { get; set; } = string.Empty;
-}
-
-public class ProductRecommendationsResponse
-{
-    public string SkinType { get; set; } = string.Empty;
-    public int TotalProducts { get; set; }
-    public List<RecommendedProduct> Products { get; set; } = new();
-}
-
-public class RecommendedProduct
-{
-    public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string? Brand { get; set; }
-    public decimal Price { get; set; }
-    public string? ImageUrl { get; set; }
-    public bool HasDiscount { get; set; }
-    public decimal DiscountPercent { get; set; }
-    public decimal DiscountedPrice { get; set; }
-}
-
-public class QuizStatusResponse
-{
-    public int UserId { get; set; }
-    public bool HasCompletedQuiz { get; set; }
-}
-
-#endregion
-

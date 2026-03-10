@@ -19,6 +19,7 @@ using CosmeticStore.Core.Interfaces.Notifications;
 using CosmeticStore.Infrastructure.Services.Notifications;
 using CosmeticStore.Core.Builders;
 using CosmeticStore.Infrastructure.Builders;
+using CosmeticStore.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -119,7 +120,8 @@ builder.Services.AddScoped<IPricingService, PricingService>();
 // - Phân tích câu trả lời → Xác định loại da
 // - Cập nhật User.SkinType → User hưởng SkinTypePricingStrategy
 // - Gợi ý sản phẩm phù hợp loại da
-builder.Services.AddScoped<ISkinQuizService, SkinQuizService>();
+// Đăng ký HttpClient cho GeminiSkinQuizService để nó có thể gọi Internet
+builder.Services.AddHttpClient<ISkinQuizService, GeminiSkinQuizService>();
 
 // Factory Pattern: Đăng ký Payment Factory (Legacy)
 builder.Services.AddScoped<PaymentFactory>();

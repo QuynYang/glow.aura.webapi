@@ -6,18 +6,18 @@ using CosmeticStore.Infrastructure.DbContext;
 
 namespace CosmeticStore.Infrastructure.Repositories;
 
-/// <summary>
+///Repository Pattern (Mẫu Kho chứa)
 /// Product Repository - Triển khai IProductRepository
-/// 
+
 /// Áp dụng:
 /// - KẾ THỪA (Inheritance): Kế thừa GenericRepository để có sẵn CRUD cơ bản
 /// - TRỪU TƯỢNG (Abstraction): Implement IProductRepository cho các query đặc thù
-/// 
+
 /// Các method đặc thù:
 /// - GetBySkinTypeAsync: Lọc sản phẩm theo loại da (AI Skin Quiz)
 /// - GetExpiringSoonAsync: Lọc sản phẩm cận hạn (Expiry Management)
 /// - GetFlashSaleProductsAsync: Lấy sản phẩm đang Flash Sale
-/// </summary>
+
 public class ProductRepository : GenericRepository<Product>, IProductRepository
 {
     public ProductRepository(StoreDbContext context) : base(context)
@@ -26,9 +26,9 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
 
     #region Skin Type Filtering (AI Skin Quiz Support)
 
-    /// <summary>
+    
     /// Lấy danh sách sản phẩm theo loại da
-    /// </summary>
+    
     public async Task<IEnumerable<Product>> GetBySkinTypeAsync(SkinType skinType)
     {
         // Nếu chọn All thì trả về tất cả sản phẩm
@@ -41,9 +41,9 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
             .ToListAsync();
     }
 
-    /// <summary>
+    
     /// Lấy sản phẩm phù hợp với loại da, có phân trang
-    /// </summary>
+    
     public async Task<IEnumerable<Product>> GetBySkinTypeAsync(SkinType skinType, int pageNumber, int pageSize)
     {
         var query = skinType == SkinType.All 
@@ -61,10 +61,10 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
 
     #region Expiry Management
 
-    /// <summary>
+    
     /// Lấy danh sách sản phẩm sắp hết hạn trong số ngày chỉ định
     /// Quan trọng: Dùng để tự động áp dụng giảm giá hoặc thông báo
-    /// </summary>
+    
     public async Task<IEnumerable<Product>> GetExpiringSoonAsync(int days)
     {
         var warningDate = DateTime.UtcNow.AddDays(days);
@@ -77,9 +77,9 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
             .ToListAsync();
     }
 
-    /// <summary>
+    
     /// Lấy danh sách sản phẩm đã hết hạn
-    /// </summary>
+    
     public async Task<IEnumerable<Product>> GetExpiredProductsAsync()
     {
         return await _dbSet
@@ -88,9 +88,9 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
             .ToListAsync();
     }
 
-    /// <summary>
+    
     /// Đếm số sản phẩm sắp hết hạn (dùng cho Dashboard Admin)
-    /// </summary>
+    
     public async Task<int> CountExpiringSoonAsync(int days)
     {
         var warningDate = DateTime.UtcNow.AddDays(days);
@@ -105,9 +105,9 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
 
     #region Flash Sale
 
-    /// <summary>
+    
     /// Lấy danh sách sản phẩm đang Flash Sale
-    /// </summary>
+    
     public async Task<IEnumerable<Product>> GetFlashSaleProductsAsync()
     {
         return await _dbSet
@@ -118,9 +118,9 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
             .ToListAsync();
     }
 
-    /// <summary>
+    
     /// Lấy sản phẩm Flash Sale có phân trang
-    /// </summary>
+    
     public async Task<IEnumerable<Product>> GetFlashSaleProductsAsync(int pageNumber, int pageSize)
     {
         return await _dbSet
@@ -133,9 +133,9 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
             .ToListAsync();
     }
 
-    /// <summary>
+    
     /// Đếm số sản phẩm đang Flash Sale
-    /// </summary>
+    
     public async Task<int> CountFlashSaleProductsAsync()
     {
         return await _dbSet
@@ -148,9 +148,9 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
 
     #region Brand & Category Filtering
 
-    /// <summary>
+    
     /// Lấy sản phẩm theo thương hiệu
-    /// </summary>
+    
     public async Task<IEnumerable<Product>> GetByBrandAsync(string brand)
     {
         return await _dbSet
@@ -159,9 +159,9 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
             .ToListAsync();
     }
 
-    /// <summary>
+    
     /// Lấy sản phẩm theo danh mục
-    /// </summary>
+    
     public async Task<IEnumerable<Product>> GetByCategoryAsync(string category)
     {
         return await _dbSet
@@ -170,9 +170,9 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
             .ToListAsync();
     }
 
-    /// <summary>
+    
     /// Lấy danh sách tất cả thương hiệu có sản phẩm
-    /// </summary>
+    
     public async Task<IEnumerable<string>> GetAllBrandsAsync()
     {
         return await _dbSet
@@ -183,9 +183,9 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
             .ToListAsync();
     }
 
-    /// <summary>
+    
     /// Lấy danh sách tất cả danh mục có sản phẩm
-    /// </summary>
+    
     public async Task<IEnumerable<string>> GetAllCategoriesAsync()
     {
         return await _dbSet
@@ -200,9 +200,9 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
 
     #region Price Filtering
 
-    /// <summary>
+    
     /// Lấy sản phẩm trong khoảng giá
-    /// </summary>
+    
     public async Task<IEnumerable<Product>> GetByPriceRangeAsync(decimal minPrice, decimal maxPrice)
     {
         return await _dbSet
@@ -215,9 +215,9 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
 
     #region Stock Management
 
-    /// <summary>
+    
     /// Lấy sản phẩm sắp hết hàng (stock <= threshold)
-    /// </summary>
+    
     public async Task<IEnumerable<Product>> GetLowStockProductsAsync(int threshold)
     {
         return await _dbSet
@@ -226,9 +226,9 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
             .ToListAsync();
     }
 
-    /// <summary>
+    
     /// Lấy sản phẩm đã hết hàng (stock = 0)
-    /// </summary>
+    
     public async Task<IEnumerable<Product>> GetOutOfStockProductsAsync()
     {
         return await _dbSet
@@ -241,9 +241,9 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
 
     #region Search & Advanced Queries
 
-    /// <summary>
+    
     /// Tìm kiếm sản phẩm theo từ khóa (tên, mô tả, thương hiệu)
-    /// </summary>
+    
     public async Task<IEnumerable<Product>> SearchAsync(string keyword)
     {
         var lowerKeyword = keyword.ToLower();
@@ -257,9 +257,9 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
             .ToListAsync();
     }
 
-    /// <summary>
+    
     /// Tìm kiếm nâng cao với nhiều điều kiện
-    /// </summary>
+    
     public async Task<IEnumerable<Product>> AdvancedSearchAsync(
         string? keyword = null,
         SkinType? skinType = null,
@@ -279,9 +279,9 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
             .ToListAsync();
     }
 
-    /// <summary>
+    
     /// Đếm số sản phẩm thỏa mãn điều kiện tìm kiếm nâng cao
-    /// </summary>
+    
     public async Task<int> CountAdvancedSearchAsync(
         string? keyword = null,
         SkinType? skinType = null,
@@ -294,9 +294,9 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
         return await query.CountAsync();
     }
 
-    /// <summary>
+    
     /// Helper method: Xây dựng query tìm kiếm nâng cao
-    /// </summary>
+    
     private IQueryable<Product> BuildAdvancedSearchQuery(
         string? keyword,
         SkinType? skinType,

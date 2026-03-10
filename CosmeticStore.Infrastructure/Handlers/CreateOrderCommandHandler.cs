@@ -4,6 +4,8 @@ using CosmeticStore.Core.Commands.Orders;
 using CosmeticStore.Core.Entities;
 using CosmeticStore.Core.Enums;
 using CosmeticStore.Core.Interfaces;
+using CosmeticStore.Core.Events;     // Chứa OrderCreatedEvent
+
 
 namespace CosmeticStore.Infrastructure.Handlers;
 
@@ -27,19 +29,22 @@ public class CreateOrderCommandHandler : ICommandHandler<CreateOrderCommand, Cre
     private readonly IGenericRepository<User> _userRepository;
     private readonly IPricingService _pricingService;
     private readonly IAppLogger _logger;
+    private readonly IDomainEventDispatcher _eventDispatcher;
 
     public CreateOrderCommandHandler(
         IProductRepository productRepository,
         IOrderRepository orderRepository,
         IGenericRepository<User> userRepository,
         IPricingService pricingService,
-        IAppLogger logger)
+        IAppLogger logger,
+        IDomainEventDispatcher eventDispatcher)
     {
         _productRepository = productRepository;
         _orderRepository = orderRepository;
         _userRepository = userRepository;
         _pricingService = pricingService;
         _logger = logger;
+        _eventDispatcher = eventDispatcher;
     }
 
     /// <summary>
@@ -157,6 +162,26 @@ public class CreateOrderCommandHandler : ICommandHandler<CreateOrderCommand, Cre
             await _orderRepository.AddAsync(order);
             await _orderRepository.SaveChangesAsync();
 
+            //abstract factory
+            if (_eventDispatcher != null)
+            {
+                var orderCreatedEvent = new OrderCreatedEvent(
+                    orderId: order.Id,
+                    orderNumber: order.OrderNumber,
+                    userId: user.Id,
+                    userEmail: user.Email,
+                    // THÊM DÒNG NÀY (Lấy từ User hoặc Command):
+                    userPhone: user.PhoneNumber ?? command.ShippingPhone, 
+                    userName: user.FullName,
+                    totalAmount: order.TotalAmount,
+                    itemCount: orderItems.Count,
+                    shippingAddress: order.ShippingAddress,
+                    paymentMethod: order.PaymentMethod,
+                    userVipLevel: user.VipLevel // Abstract Factory cần cái này
+                );
+
+                await _eventDispatcher.PublishAsync(orderCreatedEvent);
+            }
             // Step 7: Ghi Log (Singleton Pattern)
             _logger.LogOrderActivity(
                 orderId: order.Id,

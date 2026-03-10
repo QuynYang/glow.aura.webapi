@@ -2,125 +2,125 @@ using CosmeticStore.Core.Enums;
 
 namespace CosmeticStore.Core.Entities;
 
-/// <summary>
+
 /// Entity đại diện cho người dùng/khách hàng.
 /// Áp dụng tính ĐÓNG GÓI (Encapsulation) - Bảo vệ dữ liệu.
 /// 
 /// Thuộc tính quan trọng cho Strategy Pattern:
 /// - VipLevel: Xác định mức giảm giá VIP
 /// - SkinType: Xác định loại da để gợi ý sản phẩm và giảm giá
-/// </summary>
+
 public class User : BaseEntity
 {
     #region Basic Properties
 
-    /// <summary>
+    
     /// Email đăng nhập (unique)
-    /// </summary>
+    
     public string Email { get; private set; } = string.Empty;
 
-    /// <summary>
+    
     /// Mật khẩu đã được hash
-    /// </summary>
+    
     public string PasswordHash { get; private set; } = string.Empty;
 
-    /// <summary>
+    
     /// Họ và tên
-    /// </summary>
+    
     public string FullName { get; private set; } = string.Empty;
 
-    /// <summary>
+    
     /// Số điện thoại
-    /// </summary>
+    
     public string? PhoneNumber { get; private set; }
 
-    /// <summary>
+    
     /// Địa chỉ giao hàng mặc định
-    /// </summary>
+    
     public string? Address { get; private set; }
 
-    /// <summary>
+    
     /// URL ảnh đại diện
-    /// </summary>
+    
     public string? AvatarUrl { get; private set; }
 
-    /// <summary>
+    
     /// Vai trò người dùng (User, Staff, Admin)
     /// Quan trọng cho Authorization
-    /// </summary>
+    
     public UserRole Role { get; private set; } = UserRole.User;
 
-    /// <summary>
+    
     /// Trạng thái hoạt động của tài khoản
-    /// </summary>
+    
     public bool IsActive { get; private set; } = true;
 
-    /// <summary>
+    
     /// Thời gian đăng nhập lần cuối
-    /// </summary>
+    
     public DateTime? LastLoginAt { get; private set; }
 
-    /// <summary>
+    
     /// Refresh Token cho JWT (lưu để validate)
-    /// </summary>
+    
     public string? RefreshToken { get; private set; }
 
-    /// <summary>
+    
     /// Thời hạn Refresh Token
-    /// </summary>
+    
     public DateTime? RefreshTokenExpiryTime { get; private set; }
 
     #endregion
 
     #region VIP & Loyalty Properties
 
-    /// <summary>
+    
     /// Cấp độ VIP - Quan trọng cho Strategy Pattern tính giá
-    /// </summary>
+    
     public VipLevel VipLevel { get; private set; } = VipLevel.None;
 
-    /// <summary>
+    
     /// Tổng chi tiêu tích lũy (VND) - Dùng để xác định VipLevel
-    /// </summary>
+    
     public decimal TotalSpent { get; private set; } = 0;
 
-    /// <summary>
+    
     /// Điểm thưởng tích lũy
-    /// </summary>
+    
     public int LoyaltyPoints { get; private set; } = 0;
 
     #endregion
 
     #region Skin Type Properties (AI Skin Quiz)
 
-    /// <summary>
+    
     /// Loại da của người dùng - Từ AI Skin Quiz
     /// Quan trọng cho SkinTypePricingStrategy
-    /// </summary>
+    
     public SkinType SkinType { get; private set; } = SkinType.Normal;
 
-    /// <summary>
+    
     /// Đã hoàn thành Skin Quiz chưa
-    /// </summary>
+    
     public bool HasCompletedSkinQuiz { get; private set; } = false;
 
-    /// <summary>
+    
     /// Ngày hoàn thành Skin Quiz gần nhất
-    /// </summary>
+    
     public DateTime? SkinQuizCompletedAt { get; private set; }
 
     #endregion
 
     #region Constructors
 
-    /// <summary>
+    
     /// Constructor mặc định cho EF Core
-    /// </summary>
+    
     protected User() { }
 
-    /// <summary>
+    
     /// Constructor chính - Tạo user mới
-    /// </summary>
+    
     public User(string email, string passwordHash, string fullName)
     {
         if (string.IsNullOrWhiteSpace(email))
@@ -138,9 +138,9 @@ public class User : BaseEntity
         Role = UserRole.User; // Mặc định là User
     }
 
-    /// <summary>
+    
     /// Constructor với Role - Dùng để tạo Admin/Staff
-    /// </summary>
+    
     public User(string email, string passwordHash, string fullName, UserRole role) 
         : this(email, passwordHash, fullName)
     {
@@ -151,18 +151,18 @@ public class User : BaseEntity
 
     #region Authentication Methods
 
-    /// <summary>
+    
     /// Cập nhật thời gian đăng nhập
-    /// </summary>
+    
     public void RecordLogin()
     {
         LastLoginAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
     }
 
-    /// <summary>
+    
     /// Cập nhật Refresh Token
-    /// </summary>
+    
     public void SetRefreshToken(string refreshToken, DateTime expiryTime)
     {
         RefreshToken = refreshToken;
@@ -170,9 +170,9 @@ public class User : BaseEntity
         UpdatedAt = DateTime.UtcNow;
     }
 
-    /// <summary>
+    
     /// Xóa Refresh Token (Logout)
-    /// </summary>
+    
     public void RevokeRefreshToken()
     {
         RefreshToken = null;
@@ -180,9 +180,9 @@ public class User : BaseEntity
         UpdatedAt = DateTime.UtcNow;
     }
 
-    /// <summary>
+    
     /// Kiểm tra Refresh Token còn hợp lệ không
-    /// </summary>
+    
     public bool IsRefreshTokenValid(string token)
     {
         return RefreshToken == token && 
@@ -190,41 +190,41 @@ public class User : BaseEntity
                RefreshTokenExpiryTime.Value > DateTime.UtcNow;
     }
 
-    /// <summary>
+    
     /// Kích hoạt/Vô hiệu hóa tài khoản
-    /// </summary>
+    
     public void SetActiveStatus(bool isActive)
     {
         IsActive = isActive;
         UpdatedAt = DateTime.UtcNow;
     }
 
-    /// <summary>
+    
     /// Thay đổi vai trò (chỉ Admin mới được gọi)
-    /// </summary>
+    
     public void ChangeRole(UserRole newRole)
     {
         Role = newRole;
         UpdatedAt = DateTime.UtcNow;
     }
 
-    /// <summary>
+    
     /// Kiểm tra có phải Admin không
-    /// </summary>
+    
     public bool IsAdmin => Role == UserRole.Admin;
 
-    /// <summary>
+    
     /// Kiểm tra có phải Staff hoặc Admin không
-    /// </summary>
+    
     public bool IsStaffOrAdmin => Role == UserRole.Staff || Role == UserRole.Admin;
 
     #endregion
 
     #region Profile Update Methods
 
-    /// <summary>
+    
     /// Cập nhật thông tin cá nhân
-    /// </summary>
+    
     public void UpdateProfile(string? fullName = null, string? phoneNumber = null, 
                              string? address = null, string? avatarUrl = null)
     {
@@ -236,9 +236,9 @@ public class User : BaseEntity
         UpdatedAt = DateTime.UtcNow;
     }
 
-    /// <summary>
+    
     /// Đổi mật khẩu
-    /// </summary>
+    
     public void ChangePassword(string newPasswordHash)
     {
         if (string.IsNullOrWhiteSpace(newPasswordHash))
@@ -252,10 +252,10 @@ public class User : BaseEntity
 
     #region VIP & Loyalty Methods
 
-    /// <summary>
+    
     /// Thêm chi tiêu và tự động cập nhật VipLevel
     /// Gọi sau khi đơn hàng hoàn thành thanh toán
-    /// </summary>
+    
     /// <param name="amount">Số tiền chi tiêu</param>
     public void AddSpending(decimal amount)
     {
@@ -271,9 +271,9 @@ public class User : BaseEntity
         UpdatedAt = DateTime.UtcNow;
     }
 
-    /// <summary>
+    
     /// Cập nhật VipLevel dựa trên tổng chi tiêu
-    /// </summary>
+    
     private void UpdateVipLevel()
     {
         VipLevel = TotalSpent switch
@@ -286,9 +286,9 @@ public class User : BaseEntity
         };
     }
 
-    /// <summary>
+    
     /// Sử dụng điểm thưởng
-    /// </summary>
+    
     /// <param name="points">Số điểm sử dụng</param>
     public void UsePoints(int points)
     {
@@ -302,9 +302,9 @@ public class User : BaseEntity
         UpdatedAt = DateTime.UtcNow;
     }
 
-    /// <summary>
+    
     /// Lấy phần trăm giảm giá theo VipLevel
-    /// </summary>
+    
     public decimal GetVipDiscountPercent()
     {
         return VipLevel switch
@@ -321,9 +321,9 @@ public class User : BaseEntity
 
     #region Skin Quiz Methods
 
-    /// <summary>
+    
     /// Hoàn thành Skin Quiz - Cập nhật loại da
-    /// </summary>
+    
     /// <param name="skinType">Loại da từ kết quả quiz</param>
     public void CompleteSkinQuiz(SkinType skinType)
     {
@@ -333,10 +333,10 @@ public class User : BaseEntity
         UpdatedAt = DateTime.UtcNow;
     }
 
-    /// <summary>
+    
     /// Kiểm tra xem loại da của user có phù hợp với sản phẩm không
     /// Dùng cho SkinTypePricingStrategy
-    /// </summary>
+    
     /// <param name="productSkinType">Loại da phù hợp của sản phẩm</param>
     /// <returns>True nếu phù hợp</returns>
     public bool IsSkinTypeMatch(SkinType productSkinType)
@@ -351,5 +351,6 @@ public class User : BaseEntity
     }
 
     #endregion
+    
 }
 

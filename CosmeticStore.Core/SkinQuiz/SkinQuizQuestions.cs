@@ -2,19 +2,19 @@ using CosmeticStore.Core.Enums;
 
 namespace CosmeticStore.Core.SkinQuiz;
 
-/// <summary>
+
 /// Bộ câu hỏi trắc nghiệm xác định loại da
 /// 
 /// AI SKIN QUIZ:
 /// - 10 câu hỏi phân tích toàn diện
 /// - Mỗi câu trả lời có điểm số cho từng loại da
 /// - Tổng điểm cao nhất xác định loại da chính
-/// </summary>
+
 public static class SkinQuizQuestions
 {
-    /// <summary>
+    
     /// Danh sách câu hỏi
-    /// </summary>
+    
     public static readonly List<SkinQuizQuestion> Questions = new()
     {
         new SkinQuizQuestion
@@ -159,14 +159,14 @@ public static class SkinQuizQuestions
         }
     };
 
-    /// <summary>
+    
     /// Lấy câu hỏi theo ID
-    /// </summary>
+    
     public static SkinQuizQuestion? GetQuestion(int id) => Questions.FirstOrDefault(q => q.Id == id);
 
-    /// <summary>
+    
     /// Lấy option theo question ID và option ID
-    /// </summary>
+    
     public static SkinQuizOption? GetOption(int questionId, string optionId)
     {
         var question = GetQuestion(questionId);

@@ -25,6 +25,7 @@ public class OrderCreatedEvent : DomainEventBase
     public string ShippingAddress { get; }
     public PaymentMethod PaymentMethod { get; }
     
+    
     /// <summary>
     /// VIP Level của user - dùng để chọn NotificationFactory (Abstract Factory Pattern)
     /// </summary>
