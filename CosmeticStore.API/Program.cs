@@ -75,6 +75,20 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 // ==========================================
+// THÊM MỚI: CẤU HÌNH CORS CHO FRONTEND
+// ==========================================
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReactApp", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173") // Cổng mặc định của Vite, sửa nếu Frontend của bạn chạy cổng khác
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials(); // Cần thiết nếu sau này dùng Cookie hoặc truyền Token
+    });
+});
+
+// ==========================================
 // 3. ĐĂNG KÝ DEPENDENCY INJECTION (DI)
 // Áp dụng tính TRỪU TƯỢNG (Abstraction)
 // Controller chỉ biết Interface, không biết Implementation cụ thể
@@ -291,6 +305,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// THÊM MỚI: Kích hoạt CORS (Phải nằm trước Authentication)
+app.UseCors("AllowReactApp");
 
 // QUAN TRỌNG: Authentication phải trước Authorization
 app.UseAuthentication();
