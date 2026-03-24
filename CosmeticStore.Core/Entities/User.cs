@@ -64,7 +64,11 @@ public class User : BaseEntity
     /// Refresh Token cho JWT (lưu để validate)
     
     public string? RefreshToken { get; private set; }
+/// Giới tính
+    public string? Gender { get; private set; }
 
+    /// Ngày sinh
+    public DateTime? DateOfBirth { get; private set; }
     
     /// Thời hạn Refresh Token
     
@@ -224,14 +228,18 @@ public class User : BaseEntity
 
     
     /// Cập nhật thông tin cá nhân
-    
     public void UpdateProfile(string? fullName = null, string? phoneNumber = null, 
-                             string? address = null, string? avatarUrl = null)
+                              string? address = null, string? avatarUrl = null,
+                              string? gender = null, DateTime? dateOfBirth = null) // Bổ sung 2 tham số này
     {
         if (!string.IsNullOrWhiteSpace(fullName)) FullName = fullName.Trim();
         if (phoneNumber != null) PhoneNumber = phoneNumber;
         if (address != null) Address = address;
         if (avatarUrl != null) AvatarUrl = avatarUrl;
+        
+        // Cập nhật giá trị mới
+        if (gender != null) Gender = gender;
+        if (dateOfBirth != null) DateOfBirth = dateOfBirth;
         
         UpdatedAt = DateTime.UtcNow;
     }

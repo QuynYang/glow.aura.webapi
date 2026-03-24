@@ -115,6 +115,8 @@ public record UserResponse
     public decimal TotalSpent { get; init; }
     public int LoyaltyPoints { get; init; }
     public string? SkinType { get; init; }
+    public string? Gender { get; init; }
+    public DateTime? DateOfBirth { get; init; }
     public bool HasCompletedSkinQuiz { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime? LastLoginAt { get; init; }
@@ -174,6 +176,10 @@ public record UpdateProfileRequest
 
     [MaxLength(500)]
     public string? Address { get; init; }
+    [MaxLength(20)]
+    public string? Gender { get; init; }
+
+    public DateTime? DateOfBirth { get; init; }
 
     [Url(ErrorMessage = "URL ảnh đại diện không hợp lệ")]
     public string? AvatarUrl { get; init; }

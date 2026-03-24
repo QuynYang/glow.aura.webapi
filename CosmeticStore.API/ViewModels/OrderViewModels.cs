@@ -167,6 +167,7 @@ public record OrderListResponse
     public int PageSize { get; init; }
     public int TotalCount { get; init; }
     public int TotalPages { get; init; }
+    //public string CustomerName { get; init; } = string.Empty;
 }
 
 /// <summary>
@@ -182,6 +183,8 @@ public record OrderSummaryResponse
     public int ItemCount { get; init; }
     public string PaymentMethod { get; init; } = string.Empty;
     public DateTime CreatedAt { get; init; }
+    
+    public string CustomerName { get; init; } = string.Empty;
 }
 
 /// <summary>

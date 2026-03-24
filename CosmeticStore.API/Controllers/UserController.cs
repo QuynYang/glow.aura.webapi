@@ -80,7 +80,9 @@ public class UserController : ControllerBase
             fullName: request.FullName,
             phoneNumber: request.PhoneNumber,
             address: request.Address,
-            avatarUrl: request.AvatarUrl
+            avatarUrl: request.AvatarUrl,
+            gender: request.Gender,          
+            dateOfBirth: request.DateOfBirth
         );
 
         _userRepository.Update(user);
@@ -355,6 +357,8 @@ public class UserController : ControllerBase
             PhoneNumber = user.PhoneNumber,
             Address = user.Address,
             AvatarUrl = user.AvatarUrl,
+            Gender = user.Gender,             
+            DateOfBirth = user.DateOfBirth,
             Role = user.Role.ToString(),
             VipLevel = user.VipLevel.ToString(),
             TotalSpent = user.TotalSpent,

@@ -250,8 +250,14 @@ public class Order : BaseEntity
     
     public void StartProcessing()
     {
-        if (Status != OrderStatus.Paid)
-            throw new InvalidOperationException("Đơn hàng chưa thanh toán");
+        // QUY TẮC MỚI: Cho phép đóng gói nếu:
+        // 1. Đơn đã thanh toán online (Status == Paid)
+        // 2. Hoặc đơn COD đã được xác nhận (PaymentMethod == COD và Status == Confirmed)
+        bool canProcess = Status == OrderStatus.Paid || 
+                          (PaymentMethod == PaymentMethod.COD && Status == OrderStatus.Confirmed);
+
+        if (!canProcess)
+            throw new InvalidOperationException("Đơn hàng chưa thanh toán hoặc chưa được xác nhận!");
 
         Status = OrderStatus.Processing;
         UpdatedAt = DateTime.UtcNow;
@@ -279,6 +285,13 @@ public class Order : BaseEntity
 
         Status = OrderStatus.Delivered;
         DeliveredAt = DateTime.UtcNow;
+        
+        // Tự động đánh dấu đã nhận tiền nếu là đơn COD
+        if (PaymentMethod == PaymentMethod.COD && PaidAt == null)
+        {
+            PaidAt = DateTime.UtcNow;
+        }
+
         UpdatedAt = DateTime.UtcNow;
     }
 

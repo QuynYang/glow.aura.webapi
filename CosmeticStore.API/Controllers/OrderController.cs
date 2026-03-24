@@ -488,7 +488,11 @@ public class OrderController : ControllerBase
             TotalAmount = order.TotalAmount,
             ItemCount = order.OrderItems.Count,
             PaymentMethod = order.PaymentMethod.ToString(),
-            CreatedAt = order.CreatedAt
+            CreatedAt = order.CreatedAt,
+
+            CustomerName = !string.IsNullOrEmpty(order.ReceiverName) 
+            ? order.ReceiverName 
+            : (order.User?.FullName ?? "Khách hàng")
         };
     }
 
