@@ -6,7 +6,7 @@ using CosmeticStore.Core.Interfaces;
 
 namespace CosmeticStore.Infrastructure.Handlers;
 
-/// <summary>
+
 /// Handler xử lý ConfirmOrderCommand
 /// 
 /// COMMAND PATTERN - SINGLE RESPONSIBILITY:
@@ -17,7 +17,7 @@ namespace CosmeticStore.Infrastructure.Handlers;
 /// - Chỉ Admin mới có quyền xác nhận
 /// - Chỉ xác nhận được đơn Pending
 /// - Có thể cập nhật phí ship và ngày giao dự kiến
-/// </summary>
+
 public class ConfirmOrderCommandHandler : ICommandHandler<ConfirmOrderCommand, ConfirmOrderResult>
 {
     private readonly IOrderRepository _orderRepository;
@@ -31,9 +31,9 @@ public class ConfirmOrderCommandHandler : ICommandHandler<ConfirmOrderCommand, C
         _logger = logger;
     }
 
-    /// <summary>
+    
     /// Xử lý xác nhận đơn hàng
-    /// </summary>
+    
     public async Task<CommandResult<ConfirmOrderResult>> HandleAsync(
         ConfirmOrderCommand command,
         CancellationToken cancellationToken = default)

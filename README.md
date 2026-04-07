@@ -22,7 +22,15 @@
 
 ## 🎯 Giới thiệu
 
-**CosmeticStore** là một dự án Web API bán mỹ phẩm được xây dựng theo kiến trúc **Clean Architecture** với ASP.NET Core. Dự án tập trung vào việc áp dụng đúng đắn các nguyên tắc **Lập trình Hướng đối tượng (OOP)** và các **Design Patterns** phổ biến.
+**CosmeticStore** là một dự án Web API bán mỹ phẩm được xây dựng theo kiến trúc **Clean Architecture** với ASP.NET Core. Dự án tập trung vào việc áp dụng nguyên tắc **OOP** và triển khai nhiều **Design Patterns** để tách bạch trách nhiệm, giảm phụ thuộc tầng và kiểm soát luồng nghiệp vụ (đặc biệt cho phần thao tác dữ liệu & xử lý trạng thái).
+
+Các mẫu thiết kế nổi bật trong đồ án:
+- **Unit of Work** (quản lý transaction/commit dữ liệu theo ACID)
+- **Proxy** (đệm kết quả gọi AI để giảm chi phí/thời gian)
+- **State** (đóng gói luật chuyển trạng thái của `Order`)
+- **Facade** (gom quy trình thanh toán/checkout thành 1 điểm gọi)
+- **Chain of Responsibility** (chuỗi validator trước khi tạo đơn)
+- **Composite** (Category dạng cây + đệ quy tổng hợp)
 
 ### Công nghệ sử dụng
 
